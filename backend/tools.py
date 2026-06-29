@@ -35,27 +35,43 @@ def cerca_articoli(
     run_context: RunContext,
     famiglia: str | None = None,
     fornitore: str | None = None,
-    solo_disponibili: bool = False,
+    solo_disponibili: bool | None = None,
     testo: str | None = None,
-    ordina_per: str = "descrizione",
-    discendente: bool = False,
+    ordina_per: str | None = None,
+    discendente: bool | None = None,
+    reset: bool = False,
 ) -> str:
-    """Cerca articoli e mostra la tabella all'utente. Filtra per famiglia, fornitore, testo libero,
-    solo disponibili (giacenza > 0). Ordina per: descrizione, codice, famiglia, esistenza, disponibile.
+    """Cerca/filtra/ordina gli articoli e aggiorna la tabella. Filtri "sticky": i parametri
+    NON passati ereditano la ricerca precedente (è un raffinamento). Passa solo ciò che cambia.
+
+    Ordina per: descrizione, codice, famiglia, esistenza, disponibile.
 
     Args:
-        famiglia: famiglia/categoria merceologica (testo parziale).
-        fornitore: ragione sociale fornitore (testo parziale).
-        solo_disponibili: se True mostra solo articoli con esistenza > 0.
-        testo: ricerca libera su descrizione o codice articolo.
-        ordina_per: campo di ordinamento (descrizione, codice, famiglia, esistenza, disponibile).
-        discendente: True per ordine decrescente.
+        famiglia: famiglia/categoria (testo parziale). Ometti per mantenere quella corrente.
+        fornitore: ragione sociale fornitore (testo parziale). Ometti per mantenere.
+        solo_disponibili: True per soli articoli con esistenza > 0. Ometti per mantenere.
+        testo: ricerca libera su descrizione/codice. Ometti per mantenere.
+        ordina_per: campo di ordinamento. Ometti per mantenere l'ordinamento corrente.
+        discendente: direzione. Ometti: default sensato (esistenza/disponibile = decrescente).
+        reset: True per AZZERARE tutti i filtri (es. "mostra tutti gli articoli", "nuova ricerca").
     """
+    ss = run_context.session_state
+    prev_f = {} if reset else (ss.get("filtri") or {})
+    prev_s = {} if reset else (ss.get("sort") or {})
+
+    # merge: il valore nuovo (non None) vince, altrimenti eredita il precedente
+    famiglia = famiglia if famiglia is not None else prev_f.get("famiglia")
+    fornitore = fornitore if fornitore is not None else prev_f.get("fornitore")
+    testo = testo if testo is not None else prev_f.get("testo")
+    solo_disponibili = solo_disponibili if solo_disponibili is not None else bool(prev_f.get("solo_disponibili"))
+    ordina_per = ordina_per or prev_s.get("campo") or "descrizione"
+    if discendente is None:
+        discendente = ordina_per in ("esistenza", "disponibile")  # default scorta più alta in cima
+
     rows = db.cerca_articoli(
         famiglia=famiglia, fornitore=fornitore, solo_disponibili=solo_disponibili,
         testo=testo, ordina_per=ordina_per, discendente=discendente,
     )
-    ss = run_context.session_state
     ss["view"] = "table"
     ss["filtri"] = {
         "famiglia": famiglia, "fornitore": fornitore,
@@ -65,7 +81,23 @@ def cerca_articoli(
     ss["count"] = len(rows)
     ss["rows"] = rows
     ss["articolo"] = None
-    return f"Mostrati {len(rows)} articoli in tabella."
+
+    attivi = []
+    if famiglia:
+        attivi.append(f"famiglia={famiglia}")
+    if fornitore:
+        attivi.append(f"fornitore={fornitore}")
+    if testo:
+        attivi.append(f"testo={testo}")
+    if solo_disponibili:
+        attivi.append("solo disponibili")
+    filtri_str = "; ".join(attivi) or "nessuno"
+    verso = "decrescente" if discendente else "crescente"
+    # L'eco dei filtri (non sensibili) resta nella storia chat -> abilita i follow-up.
+    return (
+        f"Mostrati {len(rows)} articoli. Filtri attivi: {filtri_str}. "
+        f"Ordinati per {ordina_per} ({verso})."
+    )
 
 
 @tool()

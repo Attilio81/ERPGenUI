@@ -104,6 +104,16 @@ html, body {
   border-radius: 2px; letter-spacing: 0.08em;
 }
 .doc .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--signal); }
+.reset-btn {
+  margin-top: 8px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--paper);
+  background: transparent; border: 1px solid rgba(202,191,166,0.45);
+  border-radius: 2px; padding: 4px 10px;
+  transition: border-color .15s, color .15s;
+}
+.reset-btn:hover { border-color: var(--signal); color: var(--signal); }
+.reset-btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .eyebrow-row {
   max-width: 1200px; margin: 12px auto 0;
   display: flex; gap: 10px; align-items: center;

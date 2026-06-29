@@ -5,6 +5,7 @@ import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { Canvas } from "@/components/Canvas";
+import { ResetButton } from "@/components/ResetButton";
 
 export default function Page() {
   const [oggi, setOggi] = useState("");
@@ -31,6 +32,7 @@ export default function Page() {
                 <div className="regia">
                   <span className="dot" /> DeepSeek · regìa
                 </div>
+                <ResetButton />
               </div>
             </div>
             <div className="eyebrow-row">
