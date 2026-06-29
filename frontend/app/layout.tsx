@@ -22,7 +22,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VITTONE · Magazzino — Distinta interattiva",
+  title: "ACME · Magazzino — Distinta interattiva",
   description: "Generative UI a stato condiviso: la chat pilota la distinta di magazzino su dati reali.",
 };
 

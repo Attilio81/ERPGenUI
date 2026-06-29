@@ -21,12 +21,12 @@ export default function Page() {
               <div className="barcode" aria-hidden="true" />
               <div className="brand">
                 <div className="word">
-                  Vittone<b>.</b>
+                  Acme<b>.</b>
                 </div>
                 <div className="tag">Magazzino · Distinta</div>
               </div>
               <div className="doc">
-                <div>DITTA <b>VITC</b> · MAG <b>01</b></div>
+                <div>DITTA <b>DEMO</b> · MAG <b>01</b></div>
                 <div>DATA <b>{oggi || "—"}</b></div>
                 <div className="regia">
                   <span className="dot" /> DeepSeek · regìa
