@@ -22,6 +22,9 @@ frontend/.next/
 frontend/out/
 *.tsbuildinfo
 
+# Specs interne
+docs/superpowers/specs/
+
 # OS
 .DS_Store
 Thumbs.db
