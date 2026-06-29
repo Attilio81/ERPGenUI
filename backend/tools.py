@@ -114,4 +114,39 @@ def grafico_vendite(
     return f"Mostrato il grafico: {titolo} ({len(dati)} voci)."
 
 
-TOOLS = [cerca_articoli, dettaglio_articolo, grafico_vendite]
+@tool()
+def trova_prezzo(run_context: RunContext, testo: str) -> str:
+    """Trova prodotti per nome o codice e RESTITUISCE prezzo e giacenza, così puoi dirli
+    a voce all'utente. Usalo per domande tipo "quanto costa X", "avete X?", "prezzo di X".
+    Restituisce SOLO dati di prodotto (codice, descrizione, prezzo di listino, giacenza):
+    sono informazioni non personali, puoi riportarle nella risposta. Mostra anche la tabella.
+
+    Args:
+        testo: parola/e da cercare nella descrizione o codice (es. "pellicola 30", "alluminio").
+    """
+    rows = db.trova_prezzo(testo)
+    ss = run_context.session_state
+    ss["view"] = "table"
+    ss["filtri"] = {"testo": testo}
+    ss["sort"] = {"campo": "esistenza", "dir": "desc"}
+    ss["count"] = len(rows)
+    ss["rows"] = rows
+    ss["articolo"] = None
+
+    if not rows:
+        return f"Nessun prodotto trovato per '{testo}'."
+
+    righe = []
+    for r in rows[:8]:
+        prezzo = f"{r['prezzo']:.2f} €" if r.get("prezzo") is not None else "prezzo n/d"
+        righe.append(
+            f"- {r['codice']} · {r['descrizione']} · {prezzo} · giacenza {int(r['disponibile'])} {r['um']}"
+        )
+    extra = f"\n(+ altri {len(rows) - 8} in tabella)" if len(rows) > 8 else ""
+    return (
+        f"Trovati {len(rows)} prodotti per '{testo}' (prezzo di listino, giacenza disponibile). "
+        f"Puoi riferire questi dati di prodotto:\n" + "\n".join(righe) + extra
+    )
+
+
+TOOLS = [cerca_articoli, dettaglio_articolo, grafico_vendite, trova_prezzo]

@@ -219,6 +219,49 @@ def vendite_aggregate(
     return _query(sql, params)
 
 
+def trova_prezzo(testo: str, limit: int = 12) -> list[dict]:
+    """Prodotti che matchano testo/codice, con prezzo (listino 1) e giacenza.
+    Solo dati di prodotto: nessun dato personale (clienti/vendite)."""
+    limit = max(1, min(int(limit), 30))
+    # tokenizza: ogni parola deve comparire (AND) in descrizione o codice.
+    tokens = [t for t in (testo or "").split() if t]
+    if not tokens:
+        return []
+    conds, params = [], []
+    for t in tokens:
+        conds.append("(a.DescrArticolo LIKE ? OR a.CodArticolo LIKE ?)")
+        params += [f"%{t}%", f"%{t}%"]
+    where = " AND ".join(conds)
+    sql = f"""
+        SELECT TOP {limit}
+            a.CodArticolo    AS codice,
+            a.DescrArticolo  AS descrizione,
+            a.DescrFamiglia  AS famiglia,
+            a.DescrFornitore AS fornitore,
+            a.UnitaMisura    AS um,
+            ISNULL(d.esistenza, 0)            AS esistenza,
+            ISNULL(d.impegnato_clienti, 0)    AS impegnato,
+            ISNULL(d.ordinato_fornitori, 0)   AS ordinato,
+            (ISNULL(d.esistenza,0) - ISNULL(d.impegnato_clienti,0)) AS disponibile,
+            lp.Prezzo        AS prezzo
+        FROM vw_EGM_AI_anagraficaarticoli a
+        LEFT JOIN vw_EGM_AI_disponibilita_articoli d
+               ON a.CodArticolo = d.codice_articolo
+        OUTER APPLY (
+            SELECT TOP 1 l.Prezzo
+            FROM vw_EGM_AI_listini l
+            WHERE l.CodiceArticolo = a.CodArticolo
+              AND l.NumeroListino = 1
+              AND l.CodiceClienteSpecifico IS NULL
+              AND GETDATE() BETWEEN l.DataInizioValidita AND l.DataFineValidita
+            ORDER BY l.QuantitaDa
+        ) lp
+        WHERE {where}
+        ORDER BY ISNULL(d.esistenza, 0) DESC
+    """
+    return _query(sql, params)
+
+
 def anni_disponibili() -> list[int]:
     rows = _query("SELECT DISTINCT Anno FROM vw_EGM_AI_vendite ORDER BY Anno DESC")
     return [int(r["Anno"]) for r in rows if r["Anno"] is not None]

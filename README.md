@@ -58,9 +58,14 @@ Backend: esegue la SELECT
    └──► all'LLM torna SOLO: "Mostrati 183 articoli"        ← nessuna riga
 ```
 
-L'agente gira con `add_session_state_to_context=False`: il contenuto dello stato (le righe,
-i nomi clienti, i prezzi) **non entra mai** nel prompt. Verificato sullo stream `/agui`:
-il modello riceve solo conteggi, i dati viaggiano verso la UI.
+L'agente gira con `add_session_state_to_context=False`: il contenuto dello stato (righe,
+nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/agui`.
+
+**STRICT-selettivo.** Non tutti i dati sono uguali: i **fatti di prodotto**
+(descrizione, prezzo di listino, giacenza) NON sono dati personali, quindi il tool
+`trova_prezzo` può restituirli all'LLM perché li riferisca a voce — utile al banco
+("la pellicola H30 costa 0,77 €, ne hai 953"). I **dati personali/commerciali**
+(clienti, vendite nominative, agenti) restano solo a schermo, mai nel prompt.
 
 ## 🏗️ Architettura
 
