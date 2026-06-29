@@ -1,0 +1,27 @@
+# Secrets — MAI committare
+**/.env
+**/.env.local
+
+# Screenshot / artefatti di test
+*.png
+!docs/screenshots/*.png
+.playwright-mcp/
+
+# Python
+backend/.venv/
+**/__pycache__/
+*.py[oc]
+backend/session.db
+backend/_test*.py
+backend/_payload.json
+backend/_stream.txt
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
