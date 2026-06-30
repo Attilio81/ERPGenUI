@@ -161,4 +161,4 @@ def patch_cliente(body: ClienteUpdate):
 
 
 if __name__ == "__main__":
-    agent_os.serve(app="agent:app", host="0.0.0.0", port=8000, reload=False)
+    agent_os.serve(app="agent:app", host="127.0.0.1", port=7000, reload=False)

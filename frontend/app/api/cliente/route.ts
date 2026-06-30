@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-const AGENT_URL = (process.env.AGENT_URL || "http://localhost:8000").replace(/\/$/, "");
+const AGENT_URL = (process.env.AGENT_URL || "http://localhost:7000").replace(/\/$/, "");
 
 // Apertura scheda da click UI (no LLM).
 export async function GET(req: NextRequest) {

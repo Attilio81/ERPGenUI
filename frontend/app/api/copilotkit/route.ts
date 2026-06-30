@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 
 const serviceAdapter = new ExperimentalEmptyAdapter();
 
-const AGENT_URL = (process.env.AGENT_URL || "http://localhost:8000").replace(/\/$/, "");
+const AGENT_URL = (process.env.AGENT_URL || "http://localhost:7000").replace(/\/$/, "");
 
 const runtime = new CopilotRuntime({
   agents: {
