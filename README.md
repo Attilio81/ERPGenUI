@@ -123,6 +123,18 @@ npm run dev
 
 Apri **http://localhost:3000** e scrivi nella chat a destra.
 
+## 🎤 Voce (caso d'uso banco)
+
+Nel masthead c'è il pulsante **🎤 Voce**: detti la domanda invece di scriverla
+(es. *"avete pellicola da 30? quanto costa?"*) e parte la stessa pipeline.
+Usa la **Web Speech API** del browser (Chrome/Edge) — zero dipendenze.
+
+> ⚠️ La Web Speech API può inviare l'audio ai server del browser. Per un kiosk
+> GDPR-clean, sostituire lo STT con **Whisper locale** (whisper.cpp / faster-whisper)
+> che alimenta la stessa `appendMessage`: così né audio né dati lasciano l'azienda.
+
+C'è anche **↺ Nuova** per azzerare chat e schermata.
+
 ## 📁 Struttura
 
 ```

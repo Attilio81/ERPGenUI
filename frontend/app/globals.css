@@ -114,6 +114,29 @@ html, body {
 }
 .reset-btn:hover { border-color: var(--signal); color: var(--signal); }
 .reset-btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+.masthead-actions { display: inline-flex; gap: 8px; margin-top: 8px; }
+.masthead-actions .reset-btn { margin-top: 0; }
+.mic-btn {
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--paper);
+  background: transparent; border: 1px solid rgba(202,191,166,0.45);
+  border-radius: 2px; padding: 4px 10px;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.mic-btn:hover { border-color: var(--signal); color: var(--signal); }
+.mic-btn:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.mic-btn.rec {
+  border-color: var(--signal); color: #fff; background: var(--signal);
+  animation: micpulse 1s ease-out infinite;
+}
+@keyframes micpulse {
+  0% { box-shadow: 0 0 0 0 rgba(214,72,27,0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(214,72,27,0); }
+}
+@media (prefers-reduced-motion: reduce) { .mic-btn.rec { animation: none; } }
 .eyebrow-row {
   max-width: 1200px; margin: 12px auto 0;
   display: flex; gap: 10px; align-items: center;

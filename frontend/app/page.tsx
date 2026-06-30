@@ -6,6 +6,7 @@ import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { Canvas } from "@/components/Canvas";
 import { ResetButton } from "@/components/ResetButton";
+import { MicButton } from "@/components/MicButton";
 
 export default function Page() {
   const [oggi, setOggi] = useState("");
@@ -32,7 +33,10 @@ export default function Page() {
                 <div className="regia">
                   <span className="dot" /> DeepSeek · regìa
                 </div>
-                <ResetButton />
+                <span className="masthead-actions">
+                  <MicButton />
+                  <ResetButton />
+                </span>
               </div>
             </div>
             <div className="eyebrow-row">
