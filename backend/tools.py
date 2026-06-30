@@ -14,6 +14,7 @@ from agno.run import RunContext
 from agno.tools import tool
 
 import db
+from pii_guard import ripristina
 
 INITIAL_STATE: dict = {
     "view": "table",          # table | detail | chart
@@ -33,6 +34,7 @@ INITIAL_STATE: dict = {
     "rows_clienti": [],
     "clienti_filtro": "",
     "cliente": None,
+    "pii_map": {},   # placeholder PII -> valore vero (solo backend, mai al LLM né a schermo)
 }
 
 
@@ -62,6 +64,12 @@ def cerca_articoli(
         reset: True per AZZERARE tutti i filtri (es. "mostra tutti gli articoli", "nuova ricerca").
     """
     ss = run_context.session_state
+    # PII guard: se attivo, gli argomenti testuali possono arrivare come placeholder
+    # ([FULLNAME_1]...) -> rimetto i valori veri PRIMA della query (il LLM non li ha visti).
+    _m = ss.get("pii_map")
+    famiglia = ripristina(famiglia, _m)
+    fornitore = ripristina(fornitore, _m)
+    testo = ripristina(testo, _m)
     prev_f = {} if reset else (ss.get("filtri") or {})
     prev_s = {} if reset else (ss.get("sort") or {})
 
@@ -116,6 +124,7 @@ def dettaglio_articolo(run_context: RunContext, cod_art: str | None = None) -> s
         cod_art: codice articolo esatto (es. 'ROTO-028'). Omettilo per l'articolo corrente.
     """
     ss = run_context.session_state
+    cod_art = ripristina(cod_art, ss.get("pii_map"))
     if not cod_art:
         cod_art = ss.get("selected_codart")
     if not cod_art:
@@ -221,8 +230,9 @@ def trova_prezzo(run_context: RunContext, testo: str) -> str:
     Args:
         testo: parola/e da cercare nella descrizione o codice (es. "pellicola 30", "alluminio").
     """
-    rows = db.trova_prezzo(testo)
     ss = run_context.session_state
+    testo = ripristina(testo, ss.get("pii_map"))
+    rows = db.trova_prezzo(testo)
     ss["view"] = "table"
     ss["filtri"] = {"testo": testo}
     ss["sort"] = {"campo": "esistenza", "dir": "desc"}
@@ -270,6 +280,7 @@ def ordini_clienti(
         articolo: filtra per descrizione/codice articolo (parole-chiave).
         anno: filtra per anno dell'ordine.
     """
+    articolo = ripristina(articolo, run_context.session_state.get("pii_map"))
     rows = db.ordini_clienti(solo_da_evadere=solo_da_evadere, articolo=articolo, anno=anno)
     titolo = "Ordini clienti" + (" da evadere" if solo_da_evadere else "")
     return _mostra_ordini(run_context.session_state, "clienti", titolo, rows)
@@ -289,6 +300,7 @@ def ordini_fornitori(
         articolo: filtra per descrizione/codice articolo (parole-chiave).
         anno: filtra per anno dell'ordine.
     """
+    articolo = ripristina(articolo, run_context.session_state.get("pii_map"))
     rows = db.ordini_fornitori(solo_da_evadere=solo_da_evadere, articolo=articolo, anno=anno)
     titolo = "Ordini fornitori" + (" da evadere (in arrivo)" if solo_da_evadere else "")
     return _mostra_ordini(run_context.session_state, "fornitori", titolo, rows)
@@ -301,8 +313,9 @@ def cerca_clienti(run_context: RunContext, testo: str | None = None) -> str:
     Args:
         testo: parole-chiave da cercare. Ometti per i primi clienti.
     """
-    rows = db.cerca_clienti(testo=testo)
     ss = run_context.session_state
+    testo = ripristina(testo, ss.get("pii_map"))
+    rows = db.cerca_clienti(testo=testo)
     ss["view"] = "clienti"
     ss["rows_clienti"] = rows
     ss["clienti_filtro"] = testo or ""
@@ -319,10 +332,11 @@ def scheda_cliente(run_context: RunContext, cliente: str) -> str:
     Args:
         cliente: nome (ragione sociale) o codice conto del cliente.
     """
+    ss = run_context.session_state
+    cliente = ripristina(cliente, ss.get("pii_map"))
     cli = db.scheda_cliente(cliente)
     if cli is None:
         return f"Nessun cliente trovato per '{cliente}'."
-    ss = run_context.session_state
     ss["view"] = "cliente"
     ss["cliente"] = cli
     kpi = cli.get("kpi") or {}
