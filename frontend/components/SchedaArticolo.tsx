@@ -2,6 +2,7 @@
 
 import { AgentState } from "@/lib/state";
 import { num, num2, euro, dataIt } from "@/lib/format";
+import { EditArticolo } from "./EditArticolo";
 
 export function SchedaArticolo({ state }: { state: AgentState }) {
   const a = state.articolo;
@@ -21,7 +22,10 @@ export function SchedaArticolo({ state }: { state: AgentState }) {
             <span className="mono">{a.codice}</span> · {a.famiglia} · {a.fornitore || "—"}
           </p>
         </div>
-        <span className="chip">UM {a.um}</span>
+        <div className="scheda-actions">
+          <span className="chip">UM {a.um}</span>
+          <EditArticolo art={a} />
+        </div>
       </div>
 
       <div className="stat-row">
@@ -70,7 +74,48 @@ export function SchedaArticolo({ state }: { state: AgentState }) {
             </table>
           ) : <p className="muted">Nessuna vendita recente.</p>}
         </div>
+
+        <div className="card">
+          <h3>Ultimi ordini clienti</h3>
+          <OrdiniMini righe={a.ordini_clienti} contoLabel="Cliente" vuoto="Nessun ordine cliente." />
+        </div>
+
+        <div className="card">
+          <h3>Ultimi ordini fornitori</h3>
+          <OrdiniMini righe={a.ordini_fornitori} contoLabel="Fornitore" vuoto="Nessun ordine fornitore." />
+        </div>
       </div>
     </div>
+  );
+}
+
+function OrdiniMini({
+  righe,
+  contoLabel,
+  vuoto,
+}: {
+  righe?: { data: string; conto: string; quantita: number; residuo: number; stato: string }[];
+  contoLabel: string;
+  vuoto: string;
+}) {
+  if (!righe?.length) return <p className="muted">{vuoto}</p>;
+  return (
+    <table className="grid mini">
+      <thead>
+        <tr><th>Data</th><th>{contoLabel}</th><th className="r">Q.tà</th><th>Stato</th></tr>
+      </thead>
+      <tbody>
+        {righe.map((o, i) => (
+          <tr key={i}>
+            <td className="mono">{dataIt(o.data)}</td>
+            <td className="muted small">{o.conto}</td>
+            <td className="r">{num2(o.quantita)}</td>
+            <td>
+              <span className={"stato-pill " + (o.stato === "da evadere" ? "open" : "done")}>{o.stato}</span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

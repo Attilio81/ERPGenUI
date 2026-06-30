@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _CONN_STR = os.environ["DB_CONN"]
+_CODDITT = os.environ.get("CODDITT", "VITC")  # multitenant: una ditta per deploy
 _conn: pyodbc.Connection | None = None
 
 
@@ -170,7 +171,64 @@ def dettaglio_articolo(cod_art: str) -> dict | None:
         [cod_art],
     )
     art["ultime_vendite"] = vendite
+
+    _ord_sql = """
+        SELECT TOP 5 data_ordine AS data, ragione_sociale AS conto,
+               quantita, (quantita - quantita_evasa) AS residuo,
+               CASE WHEN quantita_evasa >= quantita THEN 'evaso' ELSE 'da evadere' END AS stato
+        FROM {vista} WHERE codice_articolo = ? ORDER BY data_ordine DESC
+    """
+    art["ordini_clienti"] = _query(_ord_sql.format(vista="vw_EGM_AI_ordini_clienti"), [cod_art])
+    art["ordini_fornitori"] = _query(_ord_sql.format(vista="vw_EGM_AI_ordini_fornitori"), [cod_art])
+
+    # campi editabili (note non è nella vista AI: letto dalla tabella artico)
+    nota = _query("SELECT TOP 1 ar_note AS note FROM artico WHERE ar_codart = ? AND codditt = ?", [cod_art, _CODDITT])
+    art["note"] = (nota[0]["note"] if nota else None) or ""
     return art
+
+
+# --- Scrittura (CRUD demo): whitelist colonne modificabili su ARTICO ---
+_EDITABILI = {
+    "descrizione": "ar_descr",
+    "note": "ar_note",
+    "peso_netto": "ar_pesonet",
+}
+
+
+def _execute_write(sql: str, params: list) -> int:
+    global _conn
+    try:
+        cur = _get_conn().cursor()
+        cur.execute(sql, params)
+        _conn.commit()
+        return cur.rowcount
+    except pyodbc.Error:
+        try:
+            if _conn:
+                _conn.close()
+        except Exception:
+            pass
+        _conn = None
+        cur = _get_conn().cursor()
+        cur.execute(sql, params)
+        _conn.commit()
+        return cur.rowcount
+
+
+def aggiorna_articolo(cod_art: str, campi: dict) -> int:
+    """UPDATE su ARTICO, SOLO colonne in whitelist, parametrico. Ritorna righe modificate."""
+    set_parts, params = [], []
+    for chiave, valore in (campi or {}).items():
+        col = _EDITABILI.get(chiave)
+        if col is None or valore is None:
+            continue
+        set_parts.append(f"{col} = ?")
+        params.append(valore)
+    if not set_parts:
+        return 0
+    params += [cod_art, _CODDITT]
+    sql = f"UPDATE artico SET {', '.join(set_parts)} WHERE ar_codart = ? AND codditt = ?"
+    return _execute_write(sql, params)
 
 
 _DIM_MAP = {

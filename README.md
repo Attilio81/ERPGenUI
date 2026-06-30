@@ -94,7 +94,7 @@ nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/a
 |------|-----------------|------------|
 | `cerca_articoli` | *"articoli disponibili della famiglia rotoli, ordina per giacenza"* | Tabella filtrata/ordinata |
 | `trova_prezzo` | *"avete pellicola da 30? quanto costa?"* | Tabella + prezzo/giacenza riferiti a voce |
-| `dettaglio_articolo` | *"scheda dell'articolo ROTO-028"* | Scheda: giacenze + listini + ultime vendite |
+| `dettaglio_articolo` | *"scheda dell'articolo ROTO-028"* | Scheda: giacenze + listini + ultime vendite + ultimi ordini clienti/fornitori |
 | `grafico_vendite` | *"articoli più venduti 2025"*, *"andamento per anno"*, *"quote per famiglia"* | Grafico: l'LLM sceglie il tipo (barre / linea / torta) dalla domanda |
 | `ordini_clienti` | *"ordini clienti da evadere"* | Tabella righe ordine (residuo, stato) |
 | `ordini_fornitori` | *"ordini ai fornitori per alluminio"* | Tabella righe ordine / merce in arrivo |
@@ -163,9 +163,16 @@ Identità "**distinta di magazzino**": tipografia condensata da segnaletica
 (Saira Condensed) + UI/dati IBM Plex (Sans + Mono, cifre tabellari), palette kraft +
 inchiostro + arancio segnale. Le tabelle ricalcano una lista di picking stampata.
 
+## ✏️ Scrittura (demo CRUD)
+
+Dalla scheda articolo, il pulsante **✎ Modifica** apre un modale per aggiornare alcuni
+campi di `ARTICO` (descrizione, note, peso netto). La scrittura è **deterministica e NON
+passa dall'LLM**: form → conferma → endpoint `PATCH /api/articolo` con **whitelist colonne**
+parametrica. L'AI naviga e legge; l'umano scrive. Multitenant: `CODDITT` nel `.env`.
+
 ## ⚠️ Note
 
-- Demo **read-only**: nessuna scrittura sul gestionale.
+- Letture **sola lettura**; l'unica scrittura è la demo CRUD sopra (whitelist + conferma).
 - Il nome agente (`my_agent`) deve combaciare tra `route.ts`, il provider e `useCoAgent`.
 - `.env` non è versionato: contiene credenziali. Usa `.env.example` come modello.
 

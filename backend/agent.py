@@ -106,5 +106,29 @@ agent = Agent(
 agent_os = AgentOS(agents=[agent], interfaces=[AGUI(agent=agent)])
 app = agent_os.get_app()
 
+
+# --- CRUD demo: modifica articolo (NON passa dall'LLM) ---
+from pydantic import BaseModel  # noqa: E402
+
+
+class ArticoloUpdate(BaseModel):
+    cod_art: str
+    descrizione: str | None = None
+    note: str | None = None
+    peso_netto: float | None = None
+
+
+@app.patch("/api/articolo")
+def patch_articolo(body: ArticoloUpdate):
+    campi = {
+        k: v for k, v in body.model_dump().items()
+        if k != "cod_art" and v is not None
+    }
+    if not campi:
+        return {"ok": False, "errore": "nessun campo da modificare"}
+    n = db.aggiorna_articolo(body.cod_art, campi)
+    return {"ok": n > 0, "modificati": n, "campi": list(campi.keys())}
+
+
 if __name__ == "__main__":
     agent_os.serve(app="agent:app", host="0.0.0.0", port=8000, reload=False)

@@ -36,6 +36,14 @@ export type VenditaRecente = {
   valore: number;
 };
 
+export type OrdineMini = {
+  data: string;
+  conto: string;
+  quantita: number;
+  residuo: number;
+  stato: "evaso" | "da evadere";
+};
+
 export type ArticoloDettaglio = {
   codice: string;
   descrizione: string;
@@ -44,9 +52,12 @@ export type ArticoloDettaglio = {
   um: string;
   peso_netto: number;
   peso_lordo: number;
+  note?: string;
   disponibilita: { esistenza: number; ordinato: number; impegnato: number };
   listini: Listino[];
   ultime_vendite: VenditaRecente[];
+  ordini_clienti?: OrdineMini[];
+  ordini_fornitori?: OrdineMini[];
 };
 
 export type PuntoGrafico = { etichetta: string; valore: number };
