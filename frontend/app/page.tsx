@@ -7,6 +7,7 @@ import "@copilotkit/react-ui/styles.css";
 import { Canvas } from "@/components/Canvas";
 import { ResetButton } from "@/components/ResetButton";
 import { MicButton } from "@/components/MicButton";
+import { HelpModal } from "@/components/HelpModal";
 
 export default function Page() {
   const [oggi, setOggi] = useState("");
@@ -38,6 +39,7 @@ export default function Page() {
                   <span className="dot" /> DeepSeek · regìa
                 </div>
                 <span className="masthead-actions">
+                  <HelpModal />
                   <MicButton />
                   <ResetButton onNuova={nuovaConversazione} />
                 </span>
