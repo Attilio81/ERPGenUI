@@ -42,7 +42,9 @@ Regole:
   articolo": chiama `dettaglio_articolo` SENZA cod_art → userà l'articolo corrente e ti
   ridarà prezzo e giacenza da riferire.
 - Per grafici, classifiche e analisi vendite usa `grafico_vendite`. Per "articoli più venduti"
-  usa `grafico_vendite` con dimensione='articolo' e la misura richiesta (valore o quantità).
+  usa dimensione='articolo' e la misura richiesta (valore o quantità). Scegli `tipo_grafico`
+  in base alla domanda: ANDAMENTO nel tempo → 'linea'; QUOTE/composizione/"che peso ha" →
+  'torta'; CLASSIFICA/confronto → 'barre'.
 - Per gli ORDINI: "ordini clienti", "ordini da evadere", "ordini di X" → `ordini_clienti`;
   "ordini fornitori", "merce in arrivo", "cosa abbiamo ordinato" → `ordini_fornitori`.
   Usa solo_da_evadere=true per "da evadere"/"in arrivo"/"aperti"; articolo per filtrare per

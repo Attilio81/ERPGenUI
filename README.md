@@ -95,7 +95,7 @@ nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/a
 | `cerca_articoli` | *"articoli disponibili della famiglia rotoli, ordina per giacenza"* | Tabella filtrata/ordinata |
 | `trova_prezzo` | *"avete pellicola da 30? quanto costa?"* | Tabella + prezzo/giacenza riferiti a voce |
 | `dettaglio_articolo` | *"scheda dell'articolo ROTO-028"* | Scheda: giacenze + listini + ultime vendite |
-| `grafico_vendite` | *"articoli più venduti per valore nel 2025"* | Grafico a barre aggregato |
+| `grafico_vendite` | *"articoli più venduti 2025"*, *"andamento per anno"*, *"quote per famiglia"* | Grafico: l'LLM sceglie il tipo (barre / linea / torta) dalla domanda |
 | `ordini_clienti` | *"ordini clienti da evadere"* | Tabella righe ordine (residuo, stato) |
 | `ordini_fornitori` | *"ordini ai fornitori per alluminio"* | Tabella righe ordine / merce in arrivo |
 

@@ -151,6 +151,7 @@ def grafico_vendite(
     misura: str = "valore",
     anno: int | None = None,
     famiglia: str | None = None,
+    tipo_grafico: str | None = None,
 ) -> str:
     """Disegna un grafico delle vendite aggregate. Usalo anche per gli articoli più venduti
     (dimensione='articolo'): restituisce i primi per valore/quantità.
@@ -160,20 +161,39 @@ def grafico_vendite(
         misura: cosa sommare — 'valore' (€) oppure 'quantita'.
         anno: filtra per anno (es. 2024, 2025, 2026). Opzionale.
         famiglia: filtra per famiglia. Opzionale.
+        tipo_grafico: tipo di visualizzazione — scegli in base alla domanda:
+            'linea' per ANDAMENTI nel tempo (es. per anno), 'torta' per QUOTE/composizione
+            (poche categorie), 'barre' per CLASSIFICHE/confronti. Ometti per il default.
     """
     dati = db.vendite_aggregate(dimensione=dimensione, misura=misura, anno=anno, famiglia=famiglia)
     mis_label = "Valore (€)" if misura == "valore" else "Quantità"
     titolo = f"{mis_label} per {dimensione}" + (f" — {anno}" if anno else "")
+
+    # tipo: default sensato + guardrail (constrained UI)
+    richiesto = (tipo_grafico or "").lower()
+    tipo = richiesto if richiesto in ("barre", "linea", "torta", "area") else (
+        "linea" if dimensione == "anno" else "barre"
+    )
+    # torta: per restare leggibile, top 7 + "Altri" (somma della coda)
+    chart_dati = dati
+    note = ""
+    if tipo == "torta" and len(dati) > 8:
+        coda = sum(d["valore"] for d in dati[7:])
+        chart_dati = dati[:7] + [{"etichetta": "Altri", "valore": coda}]
+        note = f" (torta: prime 7 voci + 'Altri'; {len(dati)} totali)"
+
     ss = run_context.session_state
     ss["view"] = "chart"
-    ss["chart_spec"] = {"dimensione": dimensione, "misura": misura, "anno": anno, "famiglia": famiglia}
+    ss["chart_spec"] = {"dimensione": dimensione, "misura": misura, "anno": anno,
+                        "famiglia": famiglia, "tipo": tipo}
     ss["chart_titolo"] = titolo
-    ss["chart_dati"] = dati
+    ss["chart_dati"] = chart_dati
 
+    tipo_str = f"grafico a {tipo}{note}"
     # Dimensioni personali (cliente/agente): le etichette sono nomi -> solo a schermo.
     if dimensione in ("cliente", "agente"):
         return (
-            f"Mostrato il grafico: {titolo} ({len(dati)} voci). Le etichette per "
+            f"Mostrato {tipo_str}: {titolo} ({len(dati)} voci). Le etichette per "
             f"'{dimensione}' sono dati personali: NON elencarle, sono solo a schermo."
         )
     # Dimensioni non personali (articolo/famiglia/anno): puoi riferire i primi.
@@ -183,7 +203,7 @@ def grafico_vendite(
     righe = "\n".join(f"- {d['etichetta']}: {_v(d['valore'])}" for d in top)
     extra = f"\n(+ altre {len(dati) - 5} voci a schermo)" if len(dati) > 5 else ""
     return (
-        f"Mostrato il grafico: {titolo} ({len(dati)} voci). "
+        f"Mostrato {tipo_str}: {titolo} ({len(dati)} voci). "
         f"Primi {len(top)} (riportabili):\n{righe}{extra}"
     )
 
