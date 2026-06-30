@@ -5,6 +5,7 @@ import { AgentState, INITIAL_STATE } from "@/lib/state";
 import { TabellaArticoli } from "./TabellaArticoli";
 import { SchedaArticolo } from "./SchedaArticolo";
 import { GraficoVendite } from "./GraficoVendite";
+import { TabellaOrdini } from "./TabellaOrdini";
 
 const TOOL_LABELS: Record<string, string> = {
   cerca_articoli: "Ricerca articoli",
@@ -42,6 +43,7 @@ export function Canvas() {
       {view === "table" && <TabellaArticoli state={s} />}
       {view === "detail" && <SchedaArticolo state={s} />}
       {view === "chart" && <GraficoVendite state={s} />}
+      {view === "ordini" && <TabellaOrdini state={s} />}
     </section>
   );
 }

@@ -27,6 +27,9 @@ INITIAL_STATE: dict = {
     "articolo": None,
     "chart_titolo": "",
     "chart_dati": [],
+    "rows_ordini": [],
+    "ordini_tipo": "clienti",
+    "ordini_titolo": "",
 }
 
 
@@ -181,4 +184,53 @@ def trova_prezzo(run_context: RunContext, testo: str) -> str:
     )
 
 
-TOOLS = [cerca_articoli, dettaglio_articolo, grafico_vendite, trova_prezzo]
+def _mostra_ordini(ss, tipo: str, titolo: str, rows: list) -> str:
+    ss["view"] = "ordini"
+    ss["ordini_tipo"] = tipo
+    ss["ordini_titolo"] = titolo
+    ss["rows_ordini"] = rows
+    ss["count"] = len(rows)
+    da_evadere = sum(1 for r in rows if r.get("stato") == "da evadere")
+    return f"Mostrati {len(rows)} righe d'ordine in tabella ({da_evadere} da evadere)."
+
+
+@tool()
+def ordini_clienti(
+    run_context: RunContext,
+    solo_da_evadere: bool = False,
+    articolo: str | None = None,
+    anno: int | None = None,
+) -> str:
+    """Mostra le righe degli ORDINI dei CLIENTI (cosa hanno ordinato i clienti).
+
+    Args:
+        solo_da_evadere: True per i soli ordini non ancora evasi (residuo > 0).
+        articolo: filtra per descrizione/codice articolo (parole-chiave).
+        anno: filtra per anno dell'ordine.
+    """
+    rows = db.ordini_clienti(solo_da_evadere=solo_da_evadere, articolo=articolo, anno=anno)
+    titolo = "Ordini clienti" + (" da evadere" if solo_da_evadere else "")
+    return _mostra_ordini(run_context.session_state, "clienti", titolo, rows)
+
+
+@tool()
+def ordini_fornitori(
+    run_context: RunContext,
+    solo_da_evadere: bool = False,
+    articolo: str | None = None,
+    anno: int | None = None,
+) -> str:
+    """Mostra le righe degli ORDINI ai FORNITORI (cosa abbiamo ordinato / merce in arrivo).
+
+    Args:
+        solo_da_evadere: True per i soli ordini non ancora evasi (in arrivo).
+        articolo: filtra per descrizione/codice articolo (parole-chiave).
+        anno: filtra per anno dell'ordine.
+    """
+    rows = db.ordini_fornitori(solo_da_evadere=solo_da_evadere, articolo=articolo, anno=anno)
+    titolo = "Ordini fornitori" + (" da evadere (in arrivo)" if solo_da_evadere else "")
+    return _mostra_ordini(run_context.session_state, "fornitori", titolo, rows)
+
+
+TOOLS = [cerca_articoli, dettaglio_articolo, grafico_vendite, trova_prezzo,
+         ordini_clienti, ordini_fornitori]

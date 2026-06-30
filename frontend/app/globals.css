@@ -266,6 +266,14 @@ html, body {
 /* =========================================================================
    GRAFICO
    ========================================================================= */
+.stato-pill {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 2px; white-space: nowrap;
+  border: 1px solid currentColor;
+}
+.stato-pill.open { color: var(--signal); }
+.stato-pill.done { color: var(--ok); }
+
 .chart-wrap { padding: 18px 14px 10px; }
 .recharts-cartesian-axis-tick text { font-family: var(--font-mono); fill: var(--ink-2); }
 

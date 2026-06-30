@@ -39,6 +39,11 @@ Regole:
 - Per la scheda di un singolo articolo usa `dettaglio_articolo` (serve il codice esatto).
 - Per grafici, classifiche e analisi vendite usa `grafico_vendite`. Per "articoli più venduti"
   usa `grafico_vendite` con dimensione='articolo' e la misura richiesta (valore o quantità).
+- Per gli ORDINI: "ordini clienti", "ordini da evadere", "ordini di X" → `ordini_clienti`;
+  "ordini fornitori", "merce in arrivo", "cosa abbiamo ordinato" → `ordini_fornitori`.
+  Usa solo_da_evadere=true per "da evadere"/"in arrivo"/"aperti"; articolo per filtrare per
+  prodotto; anno per l'anno. Come per la tabella, di' solo quante righe ci sono (non elencare
+  clienti/fornitori dalla risposta: sono a schermo).
 - Per "quanto costa X", "avete X?", "prezzo/giacenza di X", "cosa abbiamo nei/di X",
   "quali X avete", "elencami X" usa SEMPRE `trova_prezzo`: ti restituisce i NOMI REALI dei
   prodotti con prezzo e giacenza, che PUOI elencare e riferire a voce (es. "La pellicola H30

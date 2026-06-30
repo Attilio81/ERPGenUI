@@ -264,6 +264,53 @@ def trova_prezzo(testo: str, limit: int = 12) -> list[dict]:
     return _query(sql, params)
 
 
+def _ordini(vista: str, solo_da_evadere: bool, articolo: str | None, anno: int | None, limit: int) -> list[dict]:
+    limit = max(1, min(int(limit), 300))
+    where, params = [], []
+    if anno:
+        where.append("anno = ?")
+        params.append(int(anno))
+    if solo_da_evadere:
+        where.append("quantita > quantita_evasa")
+    if articolo:
+        for tok in articolo.split():
+            where.append("(descrizione_articolo LIKE ? OR codice_articolo LIKE ?)")
+            params += [f"%{tok}%", f"%{tok}%"]
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    sql = f"""
+        SELECT TOP {limit}
+            anno,
+            numero_ordine            AS numero,
+            data_ordine              AS data,
+            ragione_sociale          AS conto,
+            citta,
+            codice_articolo          AS codice,
+            descrizione_articolo     AS descrizione,
+            unita_misura             AS um,
+            quantita,
+            quantita_evasa           AS evasa,
+            (quantita - quantita_evasa) AS residuo,
+            CASE WHEN quantita_evasa >= quantita THEN 'evaso' ELSE 'da evadere' END AS stato,
+            data_consegna            AS consegna
+        FROM {vista}
+        {where_sql}
+        ORDER BY data_ordine DESC, numero_ordine DESC
+    """
+    return _query(sql, params)
+
+
+def ordini_clienti(solo_da_evadere: bool = False, articolo: str | None = None,
+                   anno: int | None = None, limit: int = 200) -> list[dict]:
+    """Righe ordini clienti (cosa hanno ordinato i clienti)."""
+    return _ordini("vw_EGM_AI_ordini_clienti", solo_da_evadere, articolo, anno, limit)
+
+
+def ordini_fornitori(solo_da_evadere: bool = False, articolo: str | None = None,
+                     anno: int | None = None, limit: int = 200) -> list[dict]:
+    """Righe ordini fornitori (cosa abbiamo ordinato ai fornitori / in arrivo)."""
+    return _ordini("vw_EGM_AI_ordini_fornitori", solo_da_evadere, articolo, anno, limit)
+
+
 def anni_disponibili() -> list[int]:
     rows = _query("SELECT DISTINCT Anno FROM vw_EGM_AI_vendite ORDER BY Anno DESC")
     return [int(r["Anno"]) for r in rows if r["Anno"] is not None]

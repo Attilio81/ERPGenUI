@@ -51,8 +51,24 @@ export type ArticoloDettaglio = {
 
 export type PuntoGrafico = { etichetta: string; valore: number };
 
+export type OrdineRow = {
+  anno: number;
+  numero: number;
+  data: string;
+  conto: string;
+  citta: string;
+  codice: string;
+  descrizione: string;
+  um: string;
+  quantita: number;
+  evasa: number;
+  residuo: number;
+  stato: "evaso" | "da evadere";
+  consegna: string;
+};
+
 export type AgentState = {
-  view: "table" | "detail" | "chart";
+  view: "table" | "detail" | "chart" | "ordini";
   filtri: Filtri;
   sort: Sort;
   count: number;
@@ -62,6 +78,9 @@ export type AgentState = {
   articolo: ArticoloDettaglio | null;
   chart_titolo: string;
   chart_dati: PuntoGrafico[];
+  rows_ordini: OrdineRow[];
+  ordini_tipo: "clienti" | "fornitori";
+  ordini_titolo: string;
 };
 
 export const INITIAL_STATE: AgentState = {
@@ -75,4 +94,7 @@ export const INITIAL_STATE: AgentState = {
   articolo: null,
   chart_titolo: "",
   chart_dati: [],
+  rows_ordini: [],
+  ordini_tipo: "clienti",
+  ordini_titolo: "",
 };

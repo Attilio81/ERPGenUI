@@ -96,6 +96,8 @@ nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/a
 | `trova_prezzo` | *"avete pellicola da 30? quanto costa?"* | Tabella + prezzo/giacenza riferiti a voce |
 | `dettaglio_articolo` | *"scheda dell'articolo ROTO-028"* | Scheda: giacenze + listini + ultime vendite |
 | `grafico_vendite` | *"articoli più venduti per valore nel 2025"* | Grafico a barre aggregato |
+| `ordini_clienti` | *"ordini clienti da evadere"* | Tabella righe ordine (residuo, stato) |
+| `ordini_fornitori` | *"ordini ai fornitori per alluminio"* | Tabella righe ordine / merce in arrivo |
 
 I filtri di `cerca_articoli` sono **sticky**: nei follow-up ("ordina per esistenza",
 "solo disponibili") basta dire ciò che cambia, gli altri filtri restano. La ricerca testo
