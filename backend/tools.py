@@ -30,6 +30,9 @@ INITIAL_STATE: dict = {
     "rows_ordini": [],
     "ordini_tipo": "clienti",
     "ordini_titolo": "",
+    "rows_clienti": [],
+    "clienti_filtro": "",
+    "cliente": None,
 }
 
 
@@ -291,5 +294,44 @@ def ordini_fornitori(
     return _mostra_ordini(run_context.session_state, "fornitori", titolo, rows)
 
 
+@tool()
+def cerca_clienti(run_context: RunContext, testo: str | None = None) -> str:
+    """Mostra l'elenco dei CLIENTI in tabella (ricerca per ragione sociale, città o P.IVA).
+
+    Args:
+        testo: parole-chiave da cercare. Ometti per i primi clienti.
+    """
+    rows = db.cerca_clienti(testo=testo)
+    ss = run_context.session_state
+    ss["view"] = "clienti"
+    ss["rows_clienti"] = rows
+    ss["clienti_filtro"] = testo or ""
+    ss["count"] = len(rows)
+    # STRICT: nominativi clienti = dati personali -> solo a schermo, all'LLM solo conteggio
+    return f"Trovati {len(rows)} clienti, mostrati in tabella. I nominativi sono solo a schermo."
+
+
+@tool()
+def scheda_cliente(run_context: RunContext, cliente: str) -> str:
+    """Apre la SCHEDA di un cliente (anagrafica, scadenze aperte, esposizione, ordini, acquistato).
+    Usala per "scheda cliente X", "situazione del cliente Y", "scadenze del cliente Z".
+
+    Args:
+        cliente: nome (ragione sociale) o codice conto del cliente.
+    """
+    cli = db.scheda_cliente(cliente)
+    if cli is None:
+        return f"Nessun cliente trovato per '{cliente}'."
+    ss = run_context.session_state
+    ss["view"] = "cliente"
+    ss["cliente"] = cli
+    kpi = cli.get("kpi") or {}
+    # STRICT: nome/indirizzo/importi = personali -> solo a schermo. All'LLM solo conteggi.
+    return (
+        f"Scheda cliente {cli.get('codice')} aperta a schermo: {kpi.get('n_scadenze', 0)} scadenze aperte. "
+        f"Anagrafica, importi e scadenze sono visibili nell'interfaccia (dati personali: non li riporto in chat)."
+    )
+
+
 TOOLS = [cerca_articoli, dettaglio_articolo, grafico_vendite, trova_prezzo,
-         ordini_clienti, ordini_fornitori]
+         ordini_clienti, ordini_fornitori, cerca_clienti, scheda_cliente]

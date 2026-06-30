@@ -5,6 +5,7 @@
 # Screenshot / artefatti di test
 *.png
 !docs/screenshots/*.png
+!docs/presentazione/*.png
 .playwright-mcp/
 
 # Python

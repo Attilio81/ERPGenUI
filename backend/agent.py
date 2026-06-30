@@ -45,6 +45,10 @@ Regole:
   usa dimensione='articolo' e la misura richiesta (valore o quantità). Scegli `tipo_grafico`
   in base alla domanda: ANDAMENTO nel tempo → 'linea'; QUOTE/composizione/"che peso ha" →
   'torta'; CLASSIFICA/confronto → 'barre'.
+- Per i CLIENTI: "elenco/lista clienti", "cerca cliente X" → `cerca_clienti`; "scheda /
+  situazione / scadenze / esposizione del cliente Y" → `scheda_cliente`. I dati cliente
+  (nome, indirizzo, importi, scadenze) sono PERSONALI: restano a schermo, in chat dai solo
+  conferma e conteggi, non riportarli.
 - Per gli ORDINI: "ordini clienti", "ordini da evadere", "ordini di X" → `ordini_clienti`;
   "ordini fornitori", "merce in arrivo", "cosa abbiamo ordinato" → `ordini_fornitori`.
   Usa solo_da_evadere=true per "da evadere"/"in arrivo"/"aperti"; articolo per filtrare per
@@ -127,6 +131,32 @@ def patch_articolo(body: ArticoloUpdate):
     if not campi:
         return {"ok": False, "errore": "nessun campo da modificare"}
     n = db.aggiorna_articolo(body.cod_art, campi)
+    return {"ok": n > 0, "modificati": n, "campi": list(campi.keys())}
+
+
+class ClienteUpdate(BaseModel):
+    cod_conto: str
+    telefono: str | None = None
+    cellulare: str | None = None
+    email: str | None = None
+    note: str | None = None
+
+
+@app.get("/api/cliente")
+def get_cliente(cod: str):
+    # apertura scheda da click UI (no LLM): ritorna i dati al frontend (a schermo)
+    return db.scheda_cliente(cod) or {}
+
+
+@app.patch("/api/cliente")
+def patch_cliente(body: ClienteUpdate):
+    campi = {
+        k: v for k, v in body.model_dump().items()
+        if k != "cod_conto" and v is not None
+    }
+    if not campi:
+        return {"ok": False, "errore": "nessun campo da modificare"}
+    n = db.aggiorna_cliente(body.cod_conto, campi)
     return {"ok": n > 0, "modificati": n, "campi": list(campi.keys())}
 
 

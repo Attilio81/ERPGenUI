@@ -369,6 +369,134 @@ def ordini_fornitori(solo_da_evadere: bool = False, articolo: str | None = None,
     return _ordini("vw_EGM_AI_ordini_fornitori", solo_da_evadere, articolo, anno, limit)
 
 
+# ============================ CLIENTI ============================
+
+def cerca_clienti(testo: str | None = None, solo_con_scaduto: bool = False, limit: int = 200) -> list[dict]:
+    """Elenco clienti (anagrafiche tipo Cliente) con match su ragione sociale / città / P.IVA."""
+    limit = max(1, min(int(limit), 500))
+    where = ["a.TipoAnagrafica = 'Cliente'"]
+    params: list = []
+    if testo:
+        for tok in testo.split():
+            where.append("(a.RagioneSociale LIKE ? OR a.Citta LIKE ? OR a.PartitaIVA LIKE ?)")
+            params += [f"%{tok}%", f"%{tok}%", f"%{tok}%"]
+    where_sql = " AND ".join(where)
+    sql = f"""
+        SELECT DISTINCT TOP {limit}
+            a.CodiceConto    AS codice,
+            a.RagioneSociale AS ragione_sociale,
+            a.Citta          AS citta,
+            a.Provincia      AS provincia,
+            a.PartitaIVA     AS piva,
+            a.DescrizioneZona AS zona,
+            a.Stato          AS stato,
+            a.Bloccato       AS bloccato
+        FROM vw_EGM_AI_anagrafiche a
+        WHERE {where_sql}
+        ORDER BY a.RagioneSociale
+    """
+    return _query(sql, params)
+
+
+def scheda_cliente(testo: str) -> dict | None:
+    """Scheda cliente completa: anagrafica + KPI scadenze + scadenze aperte + ultimi ordini + top articoli."""
+    testo = (testo or "").strip()
+    if not testo:
+        return None
+    # 1) risoluzione cliente: prima codice esatto, poi miglior match ragione sociale
+    base = """
+        SELECT TOP 1 CodiceConto AS codice, RagioneSociale AS ragione_sociale,
+               Indirizzo AS indirizzo, CAP AS cap, Citta AS citta, Provincia AS provincia,
+               Telefono AS telefono, Cellulare AS cellulare, Email AS email,
+               PartitaIVA AS piva, CodiceFiscale AS cf, CodiceAgente AS agente,
+               DescrizioneZona AS zona, Stato AS stato, Bloccato AS bloccato,
+               OrarioApertura AS orario, GiornoChiusura AS giorno_chiusura,
+               DataUltimoDocumento AS ultimo_doc, Note AS note
+        FROM vw_EGM_AI_anagrafiche WHERE TipoAnagrafica = 'Cliente' AND {cond}
+    """
+    rows = _query(base.format(cond="CodiceConto = ?"), [testo]) if testo.isdigit() else []
+    if not rows:
+        conds, params = [], []
+        for tok in testo.split():
+            conds.append("RagioneSociale LIKE ?")
+            params.append(f"%{tok}%")
+        rows = _query(base.format(cond=" AND ".join(conds) + " ORDER BY DataUltimoDocumento DESC"), params) if conds else []
+    if not rows:
+        return None
+    cli = rows[0]
+    cod = cli["codice"]
+
+    kpi = _query(
+        """
+        SELECT ISNULL(SUM(importo_residuo),0) AS esposizione,
+               ISNULL(SUM(CASE WHEN data_scadenza < GETDATE() THEN importo_residuo ELSE 0 END),0) AS scaduto,
+               ISNULL(SUM(CASE WHEN flag_insoluto='S' THEN importo_residuo ELSE 0 END),0) AS insoluti,
+               COUNT(*) AS n_scadenze
+        FROM vw_EGM_AI_scadenze_aperte WHERE codice_cliente = ?
+        """,
+        [cod],
+    )
+    cli["kpi"] = kpi[0] if kpi else {"esposizione": 0, "scaduto": 0, "insoluti": 0, "n_scadenze": 0}
+
+    cli["scadenze"] = _query(
+        """
+        SELECT TOP 30 data_scadenza AS scadenza, numero_documento AS documento,
+               importo_residuo AS residuo, flag_insoluto AS insoluto,
+               CASE WHEN flag_insoluto='S' THEN 'insoluto'
+                    WHEN data_scadenza < GETDATE() THEN 'scaduto'
+                    ELSE 'a scadere' END AS stato
+        FROM vw_EGM_AI_scadenze_aperte WHERE codice_cliente = ?
+        ORDER BY data_scadenza
+        """,
+        [cod],
+    )
+
+    cli["ultimi_ordini"] = _query(
+        """
+        SELECT TOP 6 data_ordine AS data, descrizione_articolo AS articolo,
+               quantita, (quantita - quantita_evasa) AS residuo,
+               CASE WHEN quantita_evasa >= quantita THEN 'evaso' ELSE 'da evadere' END AS stato
+        FROM vw_EGM_AI_ordini_clienti WHERE codice_conto = ?
+        ORDER BY data_ordine DESC
+        """,
+        [cod],
+    )
+
+    cli["top_articoli"] = _query(
+        """
+        SELECT TOP 8 DescrizioneArticolo AS articolo, SUM(ValoreTotale) AS valore
+        FROM vw_EGM_AI_vendite WHERE CodiceCliente = ?
+        GROUP BY DescrizioneArticolo ORDER BY valore DESC
+        """,
+        [cod],
+    )
+    return cli
+
+
+_EDITABILI_CLIENTE = {
+    "telefono": "an_telef",
+    "cellulare": "an_cell",
+    "email": "an_email",
+    "note": "an_note",
+}
+
+
+def aggiorna_cliente(cod_conto: str, campi: dict) -> int:
+    """UPDATE su ANAGRA, whitelist colonne (telefono/cellulare/email/note), parametrico."""
+    set_parts, params = [], []
+    for chiave, valore in (campi or {}).items():
+        col = _EDITABILI_CLIENTE.get(chiave)
+        if col is None or valore is None:
+            continue
+        set_parts.append(f"{col} = ?")
+        params.append(valore)
+    if not set_parts:
+        return 0
+    params += [cod_conto, _CODDITT]
+    sql = f"UPDATE anagra SET {', '.join(set_parts)} WHERE an_conto = ? AND codditt = ?"
+    return _execute_write(sql, params)
+
+
 def anni_disponibili() -> list[int]:
     rows = _query("SELECT DISTINCT Anno FROM vw_EGM_AI_vendite ORDER BY Anno DESC")
     return [int(r["Anno"]) for r in rows if r["Anno"] is not None]

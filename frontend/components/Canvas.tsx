@@ -6,6 +6,8 @@ import { TabellaArticoli } from "./TabellaArticoli";
 import { SchedaArticolo } from "./SchedaArticolo";
 import { GraficoVendite } from "./GraficoVendite";
 import { TabellaOrdini } from "./TabellaOrdini";
+import { TabellaClienti } from "./TabellaClienti";
+import { SchedaCliente } from "./SchedaCliente";
 
 const TOOL_LABELS: Record<string, string> = {
   cerca_articoli: "Ricerca articoli",
@@ -44,6 +46,8 @@ export function Canvas() {
       {view === "detail" && <SchedaArticolo state={s} />}
       {view === "chart" && <GraficoVendite state={s} />}
       {view === "ordini" && <TabellaOrdini state={s} />}
+      {view === "clienti" && <TabellaClienti state={s} />}
+      {view === "cliente" && <SchedaCliente state={s} />}
     </section>
   );
 }

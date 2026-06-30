@@ -78,8 +78,53 @@ export type OrdineRow = {
   consegna: string;
 };
 
+export type ClienteRow = {
+  codice: string;
+  ragione_sociale: string;
+  citta: string;
+  provincia: string;
+  piva: string;
+  zona: string;
+  stato: string;
+  bloccato: string;
+};
+
+export type ScadenzaMini = {
+  scadenza: string;
+  documento: number;
+  residuo: number;
+  insoluto: string;
+  stato: "scaduto" | "insoluto" | "a scadere";
+};
+
+export type ClienteDettaglio = {
+  codice: string;
+  ragione_sociale: string;
+  indirizzo: string;
+  cap: string;
+  citta: string;
+  provincia: string;
+  telefono?: string;
+  cellulare?: string;
+  email?: string;
+  piva: string;
+  cf: string;
+  agente: number;
+  zona: string;
+  stato: string;
+  bloccato: string;
+  orario?: string;
+  giorno_chiusura?: string;
+  ultimo_doc?: string;
+  note?: string;
+  kpi: { esposizione: number; scaduto: number; insoluti: number; n_scadenze: number };
+  scadenze: ScadenzaMini[];
+  ultimi_ordini: { data: string; articolo: string; quantita: number; residuo: number; stato: string }[];
+  top_articoli: { articolo: string; valore: number }[];
+};
+
 export type AgentState = {
-  view: "table" | "detail" | "chart" | "ordini";
+  view: "table" | "detail" | "chart" | "ordini" | "clienti" | "cliente";
   filtri: Filtri;
   sort: Sort;
   count: number;
@@ -92,6 +137,9 @@ export type AgentState = {
   rows_ordini: OrdineRow[];
   ordini_tipo: "clienti" | "fornitori";
   ordini_titolo: string;
+  rows_clienti: ClienteRow[];
+  clienti_filtro: string;
+  cliente: ClienteDettaglio | null;
 };
 
 export const INITIAL_STATE: AgentState = {
@@ -108,4 +156,7 @@ export const INITIAL_STATE: AgentState = {
   rows_ordini: [],
   ordini_tipo: "clienti",
   ordini_titolo: "",
+  rows_clienti: [],
+  clienti_filtro: "",
+  cliente: null,
 };
