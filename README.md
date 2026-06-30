@@ -38,34 +38,63 @@ Coerenza, design system e controllo restano dalla parte dell'applicazione.
 - 💬 **Chat → UI**: "mostra i rotoli disponibili, ordina per giacenza" filtra e ordina una tabella reale.
 - 🔄 **Stato condiviso bidirezionale** via protocollo AG-UI (snapshot + delta, SSE).
 - 🧩 **Componenti deterministici**: tabella, scheda articolo, grafico vendite.
-- 🔒 **Privacy STRICT**: i dati non vengono mai inviati all'LLM (vedi sotto).
+- 🔒 **Privacy STRICT**: le righe di dati restano a schermo, non nel prompt. L'unico testo libero che raggiunge l'LLM è ciò che l'utente digita (vedi sotto, onestamente).
 - 📊 **Dati veri**: query parametriche read-only su viste SQL Server (anagrafica, giacenze, vendite, listini).
 
-## 🔒 Privacy — l'LLM fa solo da regista
+## 🔒 Privacy & GDPR — onesto, senza marketing
 
-Il punto chiave. In un flusso agente classico l'LLM vede i risultati dei tool → i dati
-finirebbero sul cloud del modello. Qui no:
+In un flusso agente classico l'LLM vede i risultati dei tool → i dati finirebbero sul
+cloud del modello. Qui no — ma vale la pena essere precisi su **cosa esce davvero** e
+**cosa no**, perché "privacy" è spesso venduta più di quanto sia vera.
 
 ```
-Utente: "rotoli disponibili, ordina per giacenza"
+Utente: "scheda cliente Mario Rossi"
    │
    ▼
-DeepSeek vede SOLO: messaggio utente + parametri tool      ← nessun dato sensibile
-   │  tool: cerca_articoli(famiglia="rotoli", solo_disp=true, sort="esistenza")
+LLM vede:  ① il testo digitato dall'utente   ← QUI può finire un nome/P.IVA  ⚠
+           ② lo schema dei tool (nomi colonne)  ← NON è dato personale  ✅
+           ③ fatti di prodotto (prezzo/giacenza)  ← NON personali  ✅
+   │  tool: scheda_cliente(testo="Mario Rossi")
    ▼
 Backend: esegue la SELECT
-   ├──► dati nello stato condiviso ──► STATE_SNAPSHOT ──► Frontend (render)   [dati qui]
-   └──► all'LLM torna SOLO: "Mostrati 183 articoli"        ← nessuna riga
+   ├──► righe (anagrafica, scadenze, importi) ──► STATE_SNAPSHOT ──► schermo   [restano QUI]
+   └──► all'LLM torna SOLO: "Trovato 1 cliente, 4 scadenze aperte"   ← nessuna riga
 ```
 
-L'agente gira con `add_session_state_to_context=False`: il contenuto dello stato (righe,
-nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/agui`.
+### Cosa NON è un problema (e spesso viene scambiato per tale)
+- **Gli schemi del DB non sono dati personali.** "La tabella `ARTICO` ha colonne
+  `ar_codart`, `ar_descr`" è un **metadato strutturale** — comune a ogni ERP del mondo.
+  Mandarlo al modello **non viola il GDPR**. Il GDPR protegge dati di persone fisiche
+  (Art. 4), non i nomi delle colonne.
+- **Le righe di dati non passano dal modello.** L'agente gira con
+  `add_session_state_to_context=False`: il contenuto dello stato (anagrafiche, vendite
+  nominative, scadenze, importi) **non entra mai** nel prompt. Va solo a schermo via
+  STATE_SNAPSHOT. Verificato sullo stream `/agui`.
+- **I fatti di prodotto** (descrizione, prezzo di listino, giacenza) NON sono personali:
+  `trova_prezzo` può restituirli all'LLM perché li riferisca a voce — utile al banco
+  ("la pellicola H30 costa 0,77 €, ne hai 953").
 
-**STRICT-selettivo.** Non tutti i dati sono uguali: i **fatti di prodotto**
-(descrizione, prezzo di listino, giacenza) NON sono dati personali, quindi il tool
-`trova_prezzo` può restituirli all'LLM perché li riferisca a voce — utile al banco
-("la pellicola H30 costa 0,77 €, ne hai 953"). I **dati personali/commerciali**
-(clienti, vendite nominative, agenti) restano solo a schermo, mai nel prompt.
+### L'unico canale residuo reale
+**Il testo libero che l'utente digita.** Se scrive *"scheda cliente Mario Rossi"*,
+la stringa "Mario Rossi" (un dato personale) raggiunge il modello. È un canale **sottile**
+— non c'è un dump di anagrafica — ma esiste.
+
+E qui sta il punto GDPR vero: l'**API nativa DeepSeek** (`api.deepseek.com`) gira su
+**server in Cina**, senza DPA né Standard Contractual Clauses → quel poco di testo
+personale finirebbe in un paese terzo senza base legale (già bloccata in Italia dal
+Garante). **Non sono gli schemi a essere non-compliant: è la destinazione del testo utente.**
+
+### Come si chiude (senza riscrivere l'app)
+- **Endpoint UE (consigliato):** stesso modello DeepSeek servito da **Azure AI Foundry**
+  o **AWS Bedrock** in region europea. Si cambia solo `base_url`+chiave (API
+  OpenAI-compatible). Anche "Mario Rossi" resta in UE. Costo ~+5-30 €/mese.
+- **LLM locale (zero terze parti):** pesi aperti (Qwen / DeepSeek-small) self-hosted →
+  nessun dato lascia l'azienda. Costo = GPU (~800 € una-tantum).
+- Restano comunque da fare i **documenti** (DPA, ROPA, eventuale DPIA): l'hosting dà la
+  base legale, la carta la completa.
+
+> In sintesi: l'architettura STRICT riduce l'esposizione al **minimo input utente**, non
+> a zero. Per un deploy GDPR-clean, spostare l'endpoint LLM in UE (o in locale).
 
 ## 🏗️ Architettura
 
@@ -85,7 +114,7 @@ nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/a
 | Frontend  | Next.js 14 · CopilotKit 1.61 · `@ag-ui/agno` · Recharts |
 | Protocollo| AG-UI (SSE, snapshot + state delta) |
 | Backend   | Python · Agno (interfaccia `AGUI` su FastAPI) |
-| LLM       | DeepSeek (`deepseek-chat`) — orchestrazione, mai i dati |
+| LLM       | DeepSeek (`deepseek-chat`) — orchestrazione + testo utente; endpoint sostituibile (UE/locale) |
 | Dati      | SQL Server (pyodbc), viste AI in sola lettura |
 
 ## 🧰 Cosa sa fare l'agente
@@ -114,11 +143,11 @@ I filtri di `cerca_articoli` sono **sticky**: nei follow-up ("ordina per esisten
 Prerequisiti: **Node 18+**, **Python 3.13** + [uv](https://docs.astral.sh/uv/),
 **ODBC Driver 17 for SQL Server**, una chiave **DeepSeek**.
 
-### 1. Backend (porta 8000)
+### 1. Backend (porta 7000)
 ```bash
 cd backend
 cp .env.example .env      # compila DB_CONN e DEEPSEEK_API_KEY
-uv run uvicorn agent:app --host 127.0.0.1 --port 8000
+uv run uvicorn agent:app --host 127.0.0.1 --port 7000
 ```
 
 ### 2. Frontend (porta 3000)
