@@ -89,8 +89,10 @@ def cerca_articoli(
         where.append("a.DescrFornitore LIKE ?")
         params.append(f"%{fornitore}%")
     if testo:
-        where.append("(a.DescrArticolo LIKE ? OR a.CodArticolo LIKE ?)")
-        params += [f"%{testo}%", f"%{testo}%"]
+        # tokenizza: ogni parola deve comparire (AND) in descrizione, codice o famiglia
+        for tok in testo.split():
+            where.append("(a.DescrArticolo LIKE ? OR a.CodArticolo LIKE ? OR a.DescrFamiglia LIKE ?)")
+            params += [f"%{tok}%", f"%{tok}%", f"%{tok}%"]
     if solo_disponibili:
         where.append("ISNULL(d.esistenza, 0) > 0")
 
@@ -229,8 +231,8 @@ def trova_prezzo(testo: str, limit: int = 12) -> list[dict]:
         return []
     conds, params = [], []
     for t in tokens:
-        conds.append("(a.DescrArticolo LIKE ? OR a.CodArticolo LIKE ?)")
-        params += [f"%{t}%", f"%{t}%"]
+        conds.append("(a.DescrArticolo LIKE ? OR a.CodArticolo LIKE ? OR a.DescrFamiglia LIKE ?)")
+        params += [f"%{t}%", f"%{t}%", f"%{t}%"]
     where = " AND ".join(conds)
     sql = f"""
         SELECT TOP {limit}
