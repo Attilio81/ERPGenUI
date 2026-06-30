@@ -93,8 +93,13 @@ nomi clienti, vendite) **non entra mai** nel prompt. Verificato sullo stream `/a
 | Tool | Esempio in chat | Componente |
 |------|-----------------|------------|
 | `cerca_articoli` | *"articoli disponibili della famiglia rotoli, ordina per giacenza"* | Tabella filtrata/ordinata |
+| `trova_prezzo` | *"avete pellicola da 30? quanto costa?"* | Tabella + prezzo/giacenza riferiti a voce |
 | `dettaglio_articolo` | *"scheda dell'articolo ROTO-028"* | Scheda: giacenze + listini + ultime vendite |
 | `grafico_vendite` | *"articoli più venduti per valore nel 2025"* | Grafico a barre aggregato |
+
+I filtri di `cerca_articoli` sono **sticky**: nei follow-up ("ordina per esistenza",
+"solo disponibili") basta dire ciò che cambia, gli altri filtri restano. La ricerca testo
+è tokenizzata e cerca anche per famiglia ("rotoli cassa" → famiglia "Rotoli cassa e bilancia").
 
 ## 🖼️ Schermate
 
