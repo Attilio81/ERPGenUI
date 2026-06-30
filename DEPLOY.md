@@ -18,6 +18,12 @@ Backend ──pyodbc──► SQL Server (egmsql2022)   Backend ──https─�
 
 > Stop: chiudere le due finestre nere. Reset demo: pulsante **↺ Nuova** nell'app.
 
+## Aggiornare una versione gia' in produzione
+1. Ricopia i file aggiornati nella cartella sul server (escludendo `node_modules/`, `.venv/`, `.next/`, `.git/`).
+2. Sul server esegui **`aggiorna.bat`** (rinfresca dipendenze + **rebuild forzata** del frontend).
+3. Rilancia **`avvia-lan.bat`**.
+   (Senza `aggiorna.bat`, il bat normale non ricostruisce se `frontend\.next` esiste gia' → serviresti la versione vecchia.)
+
 ## Prerequisiti sul server
 - **Python 3.11+** (basta `py`/`python` nel PATH; **NON serve uv**), **Node 18+**, **ODBC Driver 17 for SQL Server**
 - Accesso a SQL Server `egmsql2022\Nts2022` + **internet in uscita** (API DeepSeek; senza → LLM locale Ollama)
