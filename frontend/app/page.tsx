@@ -10,12 +10,16 @@ import { MicButton } from "@/components/MicButton";
 
 export default function Page() {
   const [oggi, setOggi] = useState("");
+  // threadId controllato: cambiarlo = nuova sessione backend (contesto azzerato).
+  const [threadId, setThreadId] = useState("default");
   useEffect(() => {
     setOggi(new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }));
   }, []);
 
+  const nuovaConversazione = () => setThreadId("t-" + Date.now());
+
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent">
+    <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent" threadId={threadId}>
       <div className="layout">
         <main className="stage">
           <header className="masthead">
@@ -35,7 +39,7 @@ export default function Page() {
                 </div>
                 <span className="masthead-actions">
                   <MicButton />
-                  <ResetButton />
+                  <ResetButton onNuova={nuovaConversazione} />
                 </span>
               </div>
             </div>

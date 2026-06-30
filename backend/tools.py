@@ -104,21 +104,44 @@ def cerca_articoli(
 
 
 @tool()
-def dettaglio_articolo(run_context: RunContext, cod_art: str) -> str:
-    """Mostra la scheda di dettaglio di un singolo articolo (anagrafica, disponibilità,
-    prezzi di listino, ultime vendite).
+def dettaglio_articolo(run_context: RunContext, cod_art: str | None = None) -> str:
+    """Mostra la scheda di un articolo e RESTITUISCE prezzo + giacenza (per dirli a voce).
+    Usalo anche per follow-up tipo "quanto costa", "quante ne ho", "dettagli": se NON passi
+    cod_art, usa l'articolo della scheda attualmente aperta.
 
     Args:
-        cod_art: codice articolo esatto (es. 'ROTO-028').
+        cod_art: codice articolo esatto (es. 'ROTO-028'). Omettilo per l'articolo corrente.
     """
+    ss = run_context.session_state
+    if not cod_art:
+        cod_art = ss.get("selected_codart")
+    if not cod_art:
+        return "Nessun articolo indicato e nessuna scheda aperta. Dimmi il codice o cerca un prodotto."
     art = db.dettaglio_articolo(cod_art)
     if art is None:
         return f"Nessun articolo trovato con codice {cod_art}."
-    ss = run_context.session_state
     ss["view"] = "detail"
     ss["selected_codart"] = cod_art
     ss["articolo"] = art
-    return f"Mostrata la scheda dell'articolo {cod_art}."
+
+    # Fatti di PRODOTTO per l'LLM (non personali): prezzo + giacenza, così può
+    # rispondere a "quanto costa / quante ne ho". Le ultime vendite (nomi clienti)
+    # NON tornano all'LLM: restano solo a schermo.
+    disp = art.get("disponibilita") or {}
+    esist = disp.get("esistenza", 0) or 0
+    imp = disp.get("impegnato", 0) or 0
+    dispo = esist - imp
+    listini = art.get("listini") or []
+    prezzo = next((l.get("prezzo") for l in listini if l.get("listino") == 1), None)
+    if prezzo is None and listini:
+        prezzo = listini[0].get("prezzo")
+    prezzo_str = f"{prezzo:.2f} €" if prezzo is not None else "n/d"
+    return (
+        f"Scheda di {cod_art} — {art.get('descrizione','')}. "
+        f"Prezzo di listino: {prezzo_str}. Esistenza {int(esist)}, "
+        f"disponibile {int(dispo)} {art.get('um','')}. "
+        f"Listini completi e ultime vendite sono mostrati a schermo."
+    )
 
 
 @tool()
@@ -146,7 +169,23 @@ def grafico_vendite(
     ss["chart_spec"] = {"dimensione": dimensione, "misura": misura, "anno": anno, "famiglia": famiglia}
     ss["chart_titolo"] = titolo
     ss["chart_dati"] = dati
-    return f"Mostrato il grafico: {titolo} ({len(dati)} voci)."
+
+    # Dimensioni personali (cliente/agente): le etichette sono nomi -> solo a schermo.
+    if dimensione in ("cliente", "agente"):
+        return (
+            f"Mostrato il grafico: {titolo} ({len(dati)} voci). Le etichette per "
+            f"'{dimensione}' sono dati personali: NON elencarle, sono solo a schermo."
+        )
+    # Dimensioni non personali (articolo/famiglia/anno): puoi riferire i primi.
+    def _v(x):
+        return f"{x:.2f} €" if misura == "valore" else f"{int(x)}"
+    top = dati[:5]
+    righe = "\n".join(f"- {d['etichetta']}: {_v(d['valore'])}" for d in top)
+    extra = f"\n(+ altre {len(dati) - 5} voci a schermo)" if len(dati) > 5 else ""
+    return (
+        f"Mostrato il grafico: {titolo} ({len(dati)} voci). "
+        f"Primi {len(top)} (riportabili):\n{righe}{extra}"
+    )
 
 
 @tool()
