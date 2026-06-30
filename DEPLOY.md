@@ -19,7 +19,7 @@ Backend ──pyodbc──► SQL Server (egmsql2022)   Backend ──https─�
 > Stop: chiudere le due finestre nere. Reset demo: pulsante **↺ Nuova** nell'app.
 
 ## Prerequisiti sul server
-- **Python 3.13 + uv**, **Node 18+**, **ODBC Driver 17 for SQL Server**
+- **Python 3.11+** (basta `py`/`python` nel PATH; **NON serve uv**), **Node 18+**, **ODBC Driver 17 for SQL Server**
 - Accesso a SQL Server `egmsql2022\Nts2022` + **internet in uscita** (API DeepSeek; senza → LLM locale Ollama)
 - Porta **3000** aperta nel firewall (il bat prova ad aprirla; se serve, lancialo una volta come Amministratore)
 
