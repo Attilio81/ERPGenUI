@@ -10,6 +10,7 @@
 
 # Python
 backend/.venv/
+pii-service/.venv/
 **/__pycache__/
 *.py[oc]
 backend/session.db

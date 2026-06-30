@@ -1,0 +1,7 @@
+# Microservizio PII (CPU). torch CPU-only va benissimo per l'inferenza.
+# Se hai GPU NVIDIA, installa il wheel CUDA adatto al posto del torch cpu.
+torch>=2.2
+transformers>=4.45
+huggingface_hub
+fastapi
+uvicorn

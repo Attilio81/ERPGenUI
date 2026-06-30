@@ -12,9 +12,14 @@ Tabella, scheda articolo e grafici tradizionali, guidati dal linguaggio naturale
 ![Agno](https://img.shields.io/badge/Agno-AG--UI-DA481B)
 ![CopilotKit](https://img.shields.io/badge/CopilotKit-1.61-6963FF)
 ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-4D6BFE)
+![PII](https://img.shields.io/badge/Guardia%20PII-rizzo--pii--0.3B-7c3a9e)
 ![License](https://img.shields.io/badge/uso-demo-555)
 
 ![Distinta articoli](docs/screenshots/tabella.png)
+
+<p>🛡️ <b>Anonimizzazione PII</b> con il modello <a href="https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B"><b>rizzoaiacademy/rizzo-pii-0.3B</b></a> ·
+repo <a href="https://github.com/Rizzo-AI-Academy/rizzo-pii"><b>Rizzo-AI-Academy/rizzo-pii</b></a> ·
+di <b>Simone Rizzo — Rizzo AI Academy</b> (MIT)</p>
 
 </div>
 
@@ -40,6 +45,7 @@ Coerenza, design system e controllo restano dalla parte dell'applicazione.
 - 🧩 **Componenti deterministici**: tabella, scheda articolo, grafico vendite.
 - 🔒 **Privacy STRICT**: le righe di dati restano a schermo, non nel prompt. L'unico testo libero che raggiunge l'LLM è ciò che l'utente digita (vedi sotto, onestamente).
 - 📊 **Dati veri**: query parametriche read-only su viste SQL Server (anagrafica, giacenze, vendite, listini).
+- 🛡️ **Guardia PII opzionale**: anonimizzazione locale del testo utente con [rizzo-pii](https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B) prima del cloud (vedi sotto).
 
 ## 🔒 Privacy & GDPR — onesto, senza marketing
 
@@ -95,6 +101,39 @@ Garante). **Non sono gli schemi a essere non-compliant: è la destinazione del t
 
 > In sintesi: l'architettura STRICT riduce l'esposizione al **minimo input utente**, non
 > a zero. Per un deploy GDPR-clean, spostare l'endpoint LLM in UE (o in locale).
+
+### 🛡️ Guardia PII opzionale (anonimizzazione locale)
+
+Per chiudere il canale residuo **tenendo l'API DeepSeek**, c'è una guardia che anonimizza
+il testo utente **prima** che raggiunga il modello e ripristina i valori veri in locale.
+
+```
+chat → backend → [pre-hook] anonimizza → "scheda cliente [FULLNAME_1]" → DeepSeek
+                                  ↓ mapping {placeholder: valore} in session_state (locale)
+tool → ripristina([FULLNAME_1]) → SELECT con il nome vero
+```
+
+È **middleware** (pre-hook Agno), non un tool che il modello chiama: l'anonimizzazione
+avviene *prima* del prompt. Microservizio locale [`pii-service/`](pii-service/) basato sul
+modello **[`rizzoaiacademy/rizzo-pii-0.3B`](https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B)**
+(mmBERT fine-tuned, italiano, MIT) della
+**[Rizzo AI Academy](https://github.com/Rizzo-AI-Academy/rizzo-pii)** — modello + rete
+regex/checksum (CF/PIVA/IBAN) + un gazetteer ORG per i nomi-ditta italiani.
+
+Si attiva con `PII_GUARD=on` nel `backend/.env` (default `off` → demo invariata). Avvio e
+dettagli in [`pii-service/README.md`](pii-service/README.md).
+
+**Eval onesto** (su questo progetto):
+- Identificativi (CF/PIVA/IBAN/email/telefono) e indirizzi: **affidabili** (checksum-backed).
+- Nomi-persona: ok, anche in **MAIUSCOLO** (i nomi del gestionale lo sono → c'è una
+  normalizzazione del case prima del modello, che da solo perdeva i nomi tutto-maiuscolo).
+- Nomi-ditta: coperti dal gazetteer per i prefissi noti (Macelleria, Ristorante, …+ SRL/SNC).
+- **Residuo dichiarato:** casi misti ditta+persona con abbreviazioni (es. "ALIM. GERARD
+  IVANA …") ancora **parziali**. È un **backstop probabilistico**, non zero assoluto.
+
+> Il modello è agganciato via env `PII_MODEL`: quando esce una versione con più dati
+> (incluso il maiuscolo), si aggiorna senza toccare il resto. rizzo prevede anche
+> un'API/MCP ufficiali: a quel punto la guardia ci si collega come backstop.
 
 ## 🏗️ Architettura
 
@@ -184,6 +223,10 @@ frontend/
   app/page.tsx                 # provider + masthead + CopilotSidebar
   components/                  # Canvas, TabellaArticoli, SchedaArticolo, GraficoVendite
   lib/state.ts                 # tipi dello stato condiviso
+  pii_guard.py (backend)       # client anonimizza/ripristina + pre-hook (PII_GUARD)
+pii-service/                   # guardia PII locale (modello rizzo-pii-0.3B)
+  service.py                   # FastAPI /anonymize: modello + regex/checksum + gazetteer ORG
+  eval_100.py, eval_esteso.py  # eval con scorecard per categoria
 ```
 
 ## 🎨 Design
@@ -205,8 +248,24 @@ parametrica. L'AI naviga e legge; l'umano scrive. Multitenant: `CODDITT` nel `.e
 - Il nome agente (`my_agent`) deve combaciare tra `route.ts`, il provider e `useCoAgent`.
 - `.env` non è versionato: contiene credenziali. Usa `.env.example` come modello.
 
+## 🙏 Crediti
+
+La **guardia PII** di questo progetto usa il modello e il lavoro di **Rizzo AI Academy**:
+
+> ### 🦔 rizzo-pii
+> Modello: **[`rizzoaiacademy/rizzo-pii-0.3B`](https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B)**
+> — anonimizzazione PII italiana (mmBERT fine-tuned), **MIT**.
+> Repository: **[github.com/Rizzo-AI-Academy/rizzo-pii](https://github.com/Rizzo-AI-Academy/rizzo-pii)**
+> — di **Simone Rizzo · [Rizzo AI Academy](https://www.rizzoaiacademy.com/)**.
+>
+> La logica di detection del microservizio ([`pii-service/`](pii-service/)) è derivata da
+> `rizzo-pii/src/app/app.py` (MIT). Grazie per averlo reso open source. ⭐
+
+Altri mattoni: **Agno** (AG-UI / agente), **CopilotKit** (frontend), **DeepSeek** (LLM regìa).
+
 ---
 
 <div align="center">
-<sub>Demo didattica · Generative UI a stato condiviso · Agno + DeepSeek + CopilotKit</sub>
+<sub>Demo didattica · Generative UI a stato condiviso · Agno + DeepSeek + CopilotKit ·
+Guardia PII con rizzo-pii (Rizzo AI Academy, MIT)</sub>
 </div>

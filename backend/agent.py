@@ -14,6 +14,7 @@ from agno.os import AgentOS
 from agno.os.interfaces.agui import AGUI
 
 import db
+import pii_guard
 from tools import TOOLS, INITIAL_STATE
 
 # Contesto NON sensibile per ancorare il modello (evita allucinazioni su date/anni).
@@ -94,6 +95,32 @@ Regole:
 - Rispondi in italiano, conciso. Sei in sola lettura: non modifichi nulla.
 """
 
+def pii_prehook(run_input, run_context):
+    """Guardia PII (pre-hook): se PII_GUARD=on, anonimizza il messaggio utente PRIMA del
+    LLM (es. "Mario Rossi" -> "[FULLNAME_1]") e salva il mapping in session_state, così i
+    tool rimettono i valori veri in locale. Il modello non vede mai i dati personali.
+    Fail-closed: se il servizio PII non risponde, blocca la richiesta."""
+    if not pii_guard.PII_ENABLED:
+        return
+    content = getattr(run_input, "input_content", None)
+    if not isinstance(content, str) or not content.strip():
+        return
+    try:
+        anon, mapping = pii_guard.anonimizza(content)
+    except pii_guard.PIIServiceError:
+        from agno.exceptions import CheckTrigger, InputCheckError
+        raise InputCheckError(
+            "Servizio privacy non disponibile: riprova tra poco.",
+            check_trigger=CheckTrigger.INPUT_NOT_ALLOWED,
+        )
+    run_input.input_content = anon
+    if mapping:
+        ss = run_context.session_state
+        prev = ss.get("pii_map") or {}
+        prev.update(mapping)            # accumula: i follow-up riusano nomi già mascherati
+        ss["pii_map"] = prev
+
+
 agent = Agent(
     name="Assistente Magazzino Vittone",
     model=DeepSeek(id="deepseek-chat", temperature=0.3),
@@ -104,6 +131,7 @@ agent = Agent(
     add_history_to_context=True,          # ma la CONVERSAZIONE sì -> follow-up/contesto
     num_history_runs=5,                   # ultimi 5 scambi (controlla i token)
     instructions=INSTRUCTIONS,
+    pre_hooks=[pii_prehook],              # guardia PII (attiva solo con PII_GUARD=on)
     markdown=False,
 )
 
