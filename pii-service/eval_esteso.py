@@ -12,16 +12,12 @@ e conta i FALSI POSITIVI nei casi NEGATIVI (testo senza PII che NON deve scattar
 Nota onesta: i casi sono scritti a mano, con valori SINTETICI (CF/PIVA/IBAN validi).
 Non è un benchmark statistico: serve a vedere DOVE la guardia tiene e dove perde.
 """
-from service import analyze, detect_model, detect_regex, _merge
+from service import analyze, _kept
 
 
 def kept_spans(text):
-    """Entità tenute (modello + regex), con start/end/label/value."""
-    cands = detect_model(text)[0] + detect_regex(text)
-    out = []
-    for e in _merge(cands, text):
-        out.append((e["label"], text[e["start"]:e["end"]], e["start"], e["end"]))
-    return out
+    """Entità tenute (modello + regex/checksum + gazetteer ORG), con start/end/label/value."""
+    return [(e["label"], text[e["start"]:e["end"]], e["start"], e["end"]) for e in _kept(text)]
 
 
 def covered_mask(spans, n):

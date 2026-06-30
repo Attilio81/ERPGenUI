@@ -135,6 +135,45 @@ def detect_regex(text):
     return ents
 
 
+# --------------------------------------------------------------------------- #
+# Gazetteer ORG: prefissi commerciali italiani + forme societarie.
+# Affianca il modello sui nomi-ditta (tag ORG, il più debole). Deterministico.
+# --------------------------------------------------------------------------- #
+_ORG_PREFIX = [
+    "Azienda Agricola", "Macelleria", "Salumeria", "Norcineria", "Panetteria",
+    "Panificio", "Forno", "Pasticceria", "Gastronomia", "Rosticceria", "Caseificio",
+    "Latteria", "Pescheria", "Ortofrutta", "Enoteca", "Cantina", "Birrificio",
+    "Ristorante", "Trattoria", "Osteria", "Pizzeria", "Bar", "Caffè", "Caffe",
+    "Hotel", "Albergo", "Agriturismo", "Supermercato", "Alimentari", "Drogheria",
+    "Fratelli", "Ditta", "Impresa", "Società", "Societa", "Cooperativa", "Consorzio",
+]
+# forma societaria (anche con punti): S.R.L., SNC, S.a.s, SpA, S.S.
+_LEGAL = r"S\.?R\.?L\.?|S\.?N\.?C\.?|S\.?A\.?S\.?|S\.?P\.?A\.?|S\.?S\.?"
+# token che continua la ragione sociale: parola con iniziale maiuscola (anche &, ')
+_NAMETOK = r"[A-ZÀ-Ù][\wÀ-ÿ'&.]*"
+
+# prefisso noto + almeno un token nome (maiuscolo); si ferma al primo token minuscolo
+_ORG_PREFIX_RE = re.compile(
+    r"\b(?:" + "|".join(sorted(_ORG_PREFIX, key=len, reverse=True)) + r")"
+    r"(?:\s+(?:" + _NAMETOK + r"))+", re.UNICODE)
+# nome senza prefisso noto ma che TERMINA con forma societaria (es. "Fratelli Conte SRL")
+_ORG_LEGAL_RE = re.compile(
+    r"(?:" + _NAMETOK + r"\s+){1,5}(?:" + _LEGAL + r")\b", re.UNICODE)
+
+
+def detect_gazetteer(text):
+    ents = []
+    for rx in (_ORG_PREFIX_RE, _ORG_LEGAL_RE):
+        for m in rx.finditer(text):
+            s, e = m.start(), m.end()
+            while e > s and not text[e - 1].isalnum():   # togli punteggiatura finale
+                e -= 1
+            if e > s:
+                ents.append({"label": "ORG", "start": s, "end": e,
+                             "score": 0.95, "validated": False, "source": "gazetteer"})
+    return ents
+
+
 def chunk_text(text, max_words=MAX_WORDS, overlap=OVERLAP):
     words = list(re.finditer(r"\S+", text))
     if not words:
@@ -169,7 +208,7 @@ def detect_model(text):
 def _merge(cands, text):
     """Greedy senza overlap. Priorità: checksum-valido > regex > score > lunghezza."""
     order = sorted(cands, key=lambda e: (1 if e["validated"] else 0,
-                                         1 if e["source"] == "regex" else 0,
+                                         1 if e["source"] in ("regex", "gazetteer") else 0,
                                          e["score"], e["end"] - e["start"]), reverse=True)
     kept = []
     for e in order:
@@ -189,9 +228,13 @@ def _norm(s):
     return re.sub(r"\s+", " ", s.strip()).casefold()
 
 
+def _kept(text):
+    """Entità tenute = modello + rete regex/checksum + gazetteer ORG, deduplicate."""
+    return _merge(detect_model(text)[0] + detect_regex(text) + detect_gazetteer(text), text)
+
+
 def analyze(text):
-    model_ents, _ = detect_model(text)
-    kept = _merge(model_ents + detect_regex(text), text)
+    kept = _kept(text)
 
     counters, seen, mapping = {}, {}, {}
     for e in kept:
