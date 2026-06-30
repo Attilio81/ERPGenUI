@@ -228,9 +228,23 @@ def _norm(s):
     return re.sub(r"\s+", " ", s.strip()).casefold()
 
 
+def _normalize_case(text):
+    """Porta i token TUTTO-MAIUSCOLO a Title Case (AGHEMO -> Aghemo), lasciando il resto.
+    I gestionali scrivono nomi/ditte in maiuscolo, ma il modello (e il gazetteer) sono
+    tarati sul Title Case. capitalize() preserva la LUNGHEZZA -> gli offset restano validi
+    sul testo originale, da cui poi si estraggono i valori veri."""
+    return re.sub(r"[A-Za-zÀ-ÿ]{2,}",
+                  lambda m: m.group(0).capitalize() if m.group(0).isupper() else m.group(0),
+                  text)
+
+
 def _kept(text):
-    """Entità tenute = modello + rete regex/checksum + gazetteer ORG, deduplicate."""
-    return _merge(detect_model(text)[0] + detect_regex(text) + detect_gazetteer(text), text)
+    """Entità tenute = modello + rete regex/checksum + gazetteer ORG, deduplicate.
+    Modello e gazetteer girano su una copia case-normalizzata (offset invariati);
+    regex/checksum sull'originale (CF/IBAN richiedono il case esatto)."""
+    norm = _normalize_case(text)
+    cands = detect_model(norm)[0] + detect_regex(text) + detect_gazetteer(norm)
+    return _merge(cands, text)   # offset identici -> i valori si estraggono dall'originale
 
 
 def analyze(text):
