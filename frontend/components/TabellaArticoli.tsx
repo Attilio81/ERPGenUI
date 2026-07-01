@@ -1,6 +1,7 @@
 "use client";
 
-import { AgentState } from "@/lib/state";
+import { useCoAgent } from "@copilotkit/react-core";
+import { AgentState, INITIAL_STATE } from "@/lib/state";
 import { num } from "@/lib/format";
 
 const chip = (label: string, value?: string | boolean | null) => {
@@ -15,6 +16,18 @@ const chip = (label: string, value?: string | boolean | null) => {
 
 export function TabellaArticoli({ state }: { state: AgentState }) {
   const { rows, filtri, sort, count } = state;
+  const { setState } = useCoAgent<AgentState>({ name: "my_agent", initialState: INITIAL_STATE });
+
+  // click su riga -> apre la scheda articolo (fetch diretto, NON passa dall'LLM)
+  const apriArticolo = async (cod: string) => {
+    try {
+      const r = await fetch(`/api/articolo?cod=${encodeURIComponent(cod)}`);
+      const art = await r.json();
+      if (art?.codice) setState({ ...state, view: "detail", articolo: art, selected_codart: String(art.codice) });
+    } catch {
+      /* noop */
+    }
+  };
 
   const chips = [
     chip("famiglia", filtri?.famiglia),
@@ -52,7 +65,7 @@ export function TabellaArticoli({ state }: { state: AgentState }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.codice}>
+                <tr key={r.codice} className="clickable" onClick={() => apriArticolo(r.codice)} title="Apri scheda articolo">
                   <td className="mono">{r.codice}</td>
                   <td>{r.descrizione}</td>
                   <td className="muted small">{r.famiglia}</td>

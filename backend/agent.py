@@ -187,6 +187,12 @@ class ClienteUpdate(BaseModel):
     note: str | None = None
 
 
+@app.get("/api/articolo")
+def get_articolo(cod: str):
+    # apertura scheda da click UI (no LLM): dettaglio completo dell'articolo
+    return db.dettaglio_articolo(cod) or {}
+
+
 @app.get("/api/info")
 def info():
     # info non sensibili per il frontend: quale LLM sta pilotando + guardia PII.
