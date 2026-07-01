@@ -28,6 +28,14 @@ if exist ".next" rmdir /s /q ".next"
 call npm run build
 popd
 
+REM --- pii-service: rinfresca deps solo se guardia attiva e venv gia' creato ---
+set "PII=0"
+findstr /i /r "^PII_GUARD=on" "backend\.env" >nul 2>&1 && set "PII=1"
+if "%PII%"=="1" if exist "pii-service\.venv\Scripts\python.exe" (
+  echo [extra] pii-service: dipendenze...
+  "pii-service\.venv\Scripts\pip.exe" install -r "pii-service\requirements.txt"
+)
+
 echo.
 echo Aggiornamento completato. Ora lancia  avvia-lan.bat
 pause

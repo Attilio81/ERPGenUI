@@ -44,8 +44,29 @@ if not exist "frontend\.next" (
   pushd frontend & call npm run build & popd
 )
 
+REM --- guardia PII opzionale: attiva solo se PII_GUARD=on nel backend\.env ---
+set "PII=0"
+findstr /i /r "^PII_GUARD=on" "backend\.env" >nul 2>&1 && set "PII=1"
+if "%PII%"=="1" (
+  if not exist "pii-service\.venv\Scripts\python.exe" (
+    echo [setup] pii-service: venv + torch CPU + modello ^(~1GB, solo la prima volta^)...
+    %PYEXE% -m venv "pii-service\.venv"
+    "pii-service\.venv\Scripts\python.exe" -m pip install --upgrade pip
+    "pii-service\.venv\Scripts\python.exe" -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+    "pii-service\.venv\Scripts\pip.exe" install -r "pii-service\requirements.txt"
+  )
+)
+
 REM --- apri la porta 3000 nel firewall (serve admin; se fallisce, ignora) ---
 netsh advfirewall firewall add rule name="ERP GenUI 3000" dir=in action=allow protocol=TCP localport=3000 >nul 2>&1
+
+REM --- avvio pii-service :5005 (solo se guardia attiva) ---
+if "%PII%"=="1" (
+  echo [PII] Avvio guardia PII su 127.0.0.1:5005 ...
+  start "PII service :5005" cmd /k "cd /d "%~dp0pii-service" && ".venv\Scripts\python.exe" service.py"
+  echo Attendo il caricamento del modello PII...
+  timeout /t 10 /nobreak >nul
+)
 
 REM --- avvio backend :7000 (solo locale) ---
 echo [1/2] Avvio backend su 127.0.0.1:7000 ...
