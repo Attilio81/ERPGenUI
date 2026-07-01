@@ -1,10 +1,12 @@
 "use client";
 
-import { AgentState } from "@/lib/state";
+import { useCoAgent } from "@copilotkit/react-core";
+import { AgentState, INITIAL_STATE } from "@/lib/state";
 import { num, num2, euro, dataIt } from "@/lib/format";
 import { EditArticolo } from "./EditArticolo";
 
 export function SchedaArticolo({ state }: { state: AgentState }) {
+  const { setState } = useCoAgent<AgentState>({ name: "my_agent", initialState: INITIAL_STATE });
   const a = state.articolo;
   if (!a) {
     return <div className="panel"><div className="empty">Nessuna scheda caricata.</div></div>;
@@ -23,6 +25,11 @@ export function SchedaArticolo({ state }: { state: AgentState }) {
           </p>
         </div>
         <div className="scheda-actions">
+          {state.rows?.length ? (
+            <button type="button" className="edit-btn ghost" onClick={() => setState({ ...state, view: "table" })}>
+              ← Lista
+            </button>
+          ) : null}
           <span className="chip">UM {a.um}</span>
           <EditArticolo art={a} />
         </div>

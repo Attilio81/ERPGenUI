@@ -1,6 +1,7 @@
 "use client";
 
-import { AgentState } from "@/lib/state";
+import { useCoAgent } from "@copilotkit/react-core";
+import { AgentState, INITIAL_STATE } from "@/lib/state";
 import { num2, euro, dataIt } from "@/lib/format";
 import { EditCliente } from "./EditCliente";
 
@@ -8,6 +9,7 @@ const statoPill = (s: string) =>
   s === "insoluto" ? "bad" : s === "scaduto" ? "open" : "done";
 
 export function SchedaCliente({ state }: { state: AgentState }) {
+  const { setState } = useCoAgent<AgentState>({ name: "my_agent", initialState: INITIAL_STATE });
   const c = state.cliente;
   if (!c) {
     return <div className="panel"><div className="empty">Nessun cliente caricato.</div></div>;
@@ -26,6 +28,11 @@ export function SchedaCliente({ state }: { state: AgentState }) {
           </p>
         </div>
         <div className="scheda-actions">
+          {state.rows_clienti?.length ? (
+            <button type="button" className="edit-btn ghost" onClick={() => setState({ ...state, view: "clienti" })}>
+              ← Clienti
+            </button>
+          ) : null}
           <span className={"stato-pill " + (c.bloccato === "S" ? "bad" : "done")}>
             {c.bloccato === "S" ? "BLOCCATO" : "ATTIVO"}
           </span>
