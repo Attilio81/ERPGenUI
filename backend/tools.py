@@ -340,9 +340,10 @@ def scheda_cliente(run_context: RunContext, cliente: str) -> str:
     ss["view"] = "cliente"
     ss["cliente"] = cli
     kpi = cli.get("kpi") or {}
-    # STRICT: nome/indirizzo/importi = personali -> solo a schermo. All'LLM solo conteggi.
+    # STRICT: nome/indirizzo/importi/CODICE = personali/pseudonimi -> solo a schermo.
+    # All'LLM NON do nemmeno il codice conto: solo conferma + conteggio.
     return (
-        f"Scheda cliente {cli.get('codice')} aperta a schermo: {kpi.get('n_scadenze', 0)} scadenze aperte. "
+        f"Scheda cliente aperta a schermo: {kpi.get('n_scadenze', 0)} scadenze aperte. "
         f"Anagrafica, importi e scadenze sono visibili nell'interfaccia (dati personali: non li riporto in chat)."
     )
 

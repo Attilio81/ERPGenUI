@@ -9,12 +9,12 @@ from datetime import datetime
 
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
-from agno.models.deepseek import DeepSeek
 from agno.os import AgentOS
 from agno.os.interfaces.agui import AGUI
 
 import db
 import pii_guard
+from model_factory import build_model
 from tools import TOOLS, INITIAL_STATE
 
 # Contesto NON sensibile per ancorare il modello (evita allucinazioni su date/anni).
@@ -123,7 +123,7 @@ def pii_prehook(run_input, run_context):
 
 agent = Agent(
     name="Assistente Magazzino Vittone",
-    model=DeepSeek(id="deepseek-chat", temperature=0.3),
+    model=build_model(),   # provider da AI_PROVIDER: mistral (UE, GDPR) | deepseek | local
     db=SqliteDb(db_file="session.db"),
     tools=TOOLS,
     session_state=dict(INITIAL_STATE),
