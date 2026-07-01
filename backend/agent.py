@@ -81,6 +81,9 @@ Regole:
 - Privacy: PUOI riferire dati di PRODOTTO (descrizione, prezzo, giacenza) restituiti dai tool.
   NON elencare invece dati personali/commerciali (nomi clienti, vendite nominative): quelli
   restano solo nell'interfaccia. Conferma le altre azioni brevemente.
+- NON scrivere MAI nella risposta il nome o il codice del cliente, né segnaposto tecnici tipo
+  [FULLNAME_1] / [PIVA_1]: di' semplicemente "scheda aperta a schermo" e riporta solo conteggi
+  (es. numero di scadenze). I dati del cliente sono visibili nell'interfaccia, non in chat.
 - ANTI-INVENZIONE (regola assoluta): puoi affermare SOLO ciò che un tool ti ha restituito in
   questo scambio. Alcuni tool ti danno solo un CONTEGGIO (cerca_articoli, ordini_clienti,
   ordini_fornitori): in quel caso NON elencare né citare nomi, codici, quantità o righe — non
@@ -121,6 +124,17 @@ def pii_prehook(run_input, run_context):
         ss["pii_map"] = prev
 
 
+def pii_posthook(run_output, run_context):
+    """Chiude il giro: la RISPOSTA del modello può contenere placeholder ([FULLNAME_1]).
+    Prima di mostrarla all'utente li ri-sostituisce con i valori veri (schermo locale).
+    stringa → anon → LLM → risposta → RESTORE → frontend."""
+    if not pii_guard.PII_ENABLED:
+        return
+    content = getattr(run_output, "content", None)
+    if isinstance(content, str) and content:
+        run_output.content = pii_guard.ripristina(content, run_context.session_state.get("pii_map"))
+
+
 agent = Agent(
     name="Assistente Magazzino Vittone",
     model=build_model(),   # provider da AI_PROVIDER: mistral (UE, GDPR) | deepseek | local
@@ -131,8 +145,11 @@ agent = Agent(
     add_history_to_context=True,          # ma la CONVERSAZIONE sì -> follow-up/contesto
     num_history_runs=5,                   # ultimi 5 scambi (controlla i token)
     instructions=INSTRUCTIONS,
-    pre_hooks=[pii_prehook],              # guardia PII (attiva solo con PII_GUARD=on)
+    pre_hooks=[pii_prehook],              # guardia PII in ingresso (anonimizza il testo utente)
+    post_hooks=[pii_posthook],            # guardia PII in uscita (ripristina i nomi nella risposta)
     markdown=False,
+    exponential_backoff=True,             # sui 429 (rate limit) ritenta invece di fallire in silenzio
+    delay_between_retries=2,
 )
 
 agent_os = AgentOS(agents=[agent], interfaces=[AGUI(agent=agent)])

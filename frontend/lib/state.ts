@@ -140,6 +140,7 @@ export type AgentState = {
   rows_clienti: ClienteRow[];
   clienti_filtro: string;
   cliente: ClienteDettaglio | null;
+  pii_map?: Record<string, string>;
 };
 
 export const INITIAL_STATE: AgentState = {

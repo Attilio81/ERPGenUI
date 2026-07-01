@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")   # console Windows (cp1252) -> evita crash su ✓/✗
@@ -85,11 +86,14 @@ def tool_args(resp, tool):
 
 def main():
     provider = os.environ.get("AI_PROVIDER", "deepseek")
+    delay = float(os.environ.get("EVAL_DELAY", "0"))  # pausa tra chiamate (rate limit Mistral)
     ok_tool = ok_param = n_param = 0
     print("=" * 88)
     print(f"EVAL ROUTING · provider={provider} · {len(CASI)} casi")
     print("=" * 88)
     for i, (dom, atteso, pcheck) in enumerate(CASI):
+        if delay and i:
+            time.sleep(delay)
         try:
             resp = agent.run(dom, session_id=f"eval-{i}")
             called = tool_names(resp)

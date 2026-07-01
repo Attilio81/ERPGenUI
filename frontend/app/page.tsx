@@ -8,6 +8,10 @@ import { Canvas } from "@/components/Canvas";
 import { ResetButton } from "@/components/ResetButton";
 import { MicButton } from "@/components/MicButton";
 import { HelpModal } from "@/components/HelpModal";
+import { PiiUnmask } from "@/components/PiiUnmask";
+
+// Etichetta del modello nel masthead (non hardcodata al provider). Override: NEXT_PUBLIC_LLM_LABEL.
+const LLM_LABEL = process.env.NEXT_PUBLIC_LLM_LABEL || "LLM";
 
 export default function Page() {
   const [oggi, setOggi] = useState("");
@@ -21,6 +25,7 @@ export default function Page() {
 
   return (
     <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent" threadId={threadId}>
+      <PiiUnmask />
       <div className="layout">
         <main className="stage">
           <header className="masthead">
@@ -36,7 +41,7 @@ export default function Page() {
                 <div>DITTA <b>DEMO</b> · MAG <b>01</b></div>
                 <div>DATA <b>{oggi || "—"}</b></div>
                 <div className="regia">
-                  <span className="dot" /> DeepSeek · regìa
+                  <span className="dot" /> {LLM_LABEL} · regìa
                 </div>
                 <span className="masthead-actions">
                   <HelpModal />

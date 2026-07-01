@@ -11,7 +11,8 @@ Tabella, scheda articolo e grafici tradizionali, guidati dal linguaggio naturale
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Agno](https://img.shields.io/badge/Agno-AG--UI-DA481B)
 ![CopilotKit](https://img.shields.io/badge/CopilotKit-1.61-6963FF)
-![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-4D6BFE)
+![LLM](https://img.shields.io/badge/LLM-Mistral%C2%B7DeepSeek%C2%B7local-4D6BFE)
+![GDPR](https://img.shields.io/badge/GDPR-Mistral%20UE-1F6B3B)
 ![PII](https://img.shields.io/badge/Guardia%20PII-rizzo--pii--0.3B-7c3a9e)
 ![License](https://img.shields.io/badge/uso-demo-555)
 
@@ -45,6 +46,7 @@ Coerenza, design system e controllo restano dalla parte dell'applicazione.
 - 🧩 **Componenti deterministici**: tabella articoli, scheda articolo, grafici, ordini, scheda cliente.
 - 📊 **Dati veri**: query parametriche *read-only* su viste SQL Server (anagrafica, giacenze, vendite, listini, ordini, scadenze).
 - 🔒 **Privacy STRICT**: le righe di dati restano a schermo, **mai nel prompt**; al modello solo conteggi.
+- 🇪🇺 **LLM a scelta** via `AI_PROVIDER`: **Mistral** (La Plateforme, UE → GDPR-compliant · consigliato), **DeepSeek** (dev/costo), **local** (self-host). Cambio da `.env`, codice invariato.
 - 🛡️ **Guardia PII opzionale**: anonimizzazione locale del testo utente con [rizzo-pii](https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B) prima del cloud.
 - 🎤 **Voce** (Web Speech) e ✏️ **CRUD** deterministico (modifica articolo/cliente fuori dall'LLM).
 
@@ -53,7 +55,7 @@ Coerenza, design system e controllo restano dalla parte dell'applicazione.
 ```
 ┌─────────────────────────────┐    AG-UI / SSE     ┌──────────────────────────────┐
 │  Next.js + CopilotKit        │ ◄─ stato condiviso ►│  Agno Agent (FastAPI /agui)   │
-│  useCoAgent("my_agent")      │  {view, filtri,     │  LLM: DeepSeek (regìa)        │
+│  useCoAgent("my_agent")      │  {view, filtri,     │  LLM: Mistral·DeepSeek·local  │
 │  render su state.view:       │   sort, rows,       │  tools read-only              │
 │  table·detail·chart·         │   articolo, chart…} │     │                         │
 │  ordini·clienti·cliente      │                     │     ▼  pyodbc (SELECT)        │
@@ -68,7 +70,7 @@ Coerenza, design system e controllo restano dalla parte dell'applicazione.
 | Frontend   | Next.js 14 · CopilotKit 1.61 · `@ag-ui/agno` · Recharts |
 | Protocollo | AG-UI (SSE, snapshot + state delta) |
 | Backend    | Python · Agno (interfaccia `AGUI` su FastAPI), porta 7000 |
-| LLM        | DeepSeek (`deepseek-chat`) — orchestrazione; endpoint sostituibile (UE/locale) |
+| LLM        | Pluggable via `AI_PROVIDER` (`model_factory.py`): **Mistral** UE · **DeepSeek** · **local**. Solo orchestrazione |
 | Dati       | SQL Server (pyodbc), viste AI in sola lettura |
 | Guardia PII | microservizio locale `pii-service` (porta 5005) — modello [rizzo-pii-0.3B](https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B), opzionale |
 
@@ -123,36 +125,50 @@ punto GDPR: l'**API nativa DeepSeek** (`api.deepseek.com`) gira su **server in C
 DPA né SCC → quel testo finirebbe in un paese terzo senza base legale (già bloccata in Italia
 dal Garante). **Non sono gli schemi a essere non-compliant: è la destinazione del testo utente.**
 
-Due modi (combinabili) per chiuderlo:
+### La via consigliata: provider LLM in UE (Mistral)
 
-**A) Anonimizzazione locale — la guardia PII (in questo progetto).**
-Un pre-hook anonimizza il testo utente **prima** del modello e ripristina i valori veri in
-locale: il cloud vede solo `[FULLNAME_1]`. È **middleware**, non un tool che il modello chiama.
-Microservizio [`pii-service/`](pii-service/) basato sul modello
+La compliance vera **non** viene dall'app: viene dalla **scelta del provider**. Basta cambiare
+`AI_PROVIDER` da `deepseek` a **`mistral`** ([`model_factory.py`](backend/model_factory.py),
+una riga di `.env`) e il modello gira su **Mistral La Plateforme** (Parigi):
+
+- **Azienda UE** → **nessun trasferimento in paese terzo**: il problema Art. 44 non si pone.
+- **DPA diretto**, **dati in UE** di default, opzione **Zero Data Retention** (piano Scale).
+- Stesso ruolo (regìa della UI), API OpenAI-compatible, function-calling nativo.
+
+Restano — lato tuo — i **documenti**: DPA firmato con Mistral, voce nel ROPA, eventuale DPIA.
+Quella è la base legale; il codice è già pronto. Alternativa "zero terzi": `AI_PROVIDER=local`
+(Qwen / Mistral self-hosted, costo = GPU).
+
+> **Routing misurato** ([`backend/eval_routing.py`](backend/eval_routing.py)): **DeepSeek 28/29 = 96%**
+> in batch. **Mistral routa correttamente a ritmo reale** (verificato live nel frontend, 5/5 viste);
+> il batch fitto è limitato solo dal **TPM del tier free** (i 429 tornano vuoti, l'`exponential_backoff`
+> ritenta), non dalla capacità. Si sceglie **col numero**, non a fede.
+
+### Difesa in più (opzionale): guardia PII locale
+
+Con Mistral **non è necessaria** (la compliance c'è già). Resta come *data minimization*: se vuoi
+non far uscire i nomi **nemmeno** verso il processore UE. Il giro è completo:
+
+```
+testo utente → [pre-hook] anonimizza → LLM (vede [FULLNAME_1]) → risposta
+   ├─ tool: ripristina prima della SELECT (query col nome vero)
+   └─ chat: PiiUnmask ri-sostituisce lato client (l'utente vede il nome vero, il cloud no)
+```
+
+Il cloud vede solo `[FULLNAME_1]`; l'utente, sul suo schermo, vede il nome reale.
+Microservizio [`pii-service/`](pii-service/) sul modello
 **[`rizzoaiacademy/rizzo-pii-0.3B`](https://huggingface.co/rizzoaiacademy/rizzo-pii-0.3B)**
-(mmBERT fine-tuned, italiano, MIT) della **[Rizzo AI Academy](https://github.com/Rizzo-AI-Academy/rizzo-pii)** —
-modello + rete regex/checksum (CF/PIVA/IBAN) + gazetteer ORG per i nomi-ditta italiani.
-Si attiva con `PII_GUARD=on` nel `backend/.env` (default `off` → demo invariata).
+(mmBERT, italiano, MIT — [Rizzo AI Academy](https://github.com/Rizzo-AI-Academy/rizzo-pii)):
+modello + rete regex/checksum (CF/PIVA/IBAN) + gazetteer ORG.
+Si attiva con `PII_GUARD=on` (default `off`).
 
-*Eval onesto su questo progetto:*
-- Identificativi (CF/PIVA/IBAN/email/telefono) e indirizzi: **affidabili** (checksum-backed).
-- Nomi-persona: ok, anche in **MAIUSCOLO** (i nomi del gestionale lo sono → c'è una
-  normalizzazione del case prima del modello, che da solo perdeva i nomi tutto-maiuscolo).
-- Nomi-ditta: coperti dal gazetteer per i prefissi noti (Macelleria, Ristorante… + SRL/SNC).
-- **Residuo dichiarato:** casi misti ditta+persona con abbreviazioni (es. *"ALIM. GERARD
-  IVANA …"*) ancora **parziali**. È un **backstop probabilistico**, non zero assoluto.
+*Eval onesto:* identificativi (CF/PIVA/IBAN/email/telefono), indirizzi e nomi-persona (anche
+MAIUSCOLO, via normalizzazione del case) **affidabili**; nomi-ditta coperti dal gazetteer;
+**residuo dichiarato** sui casi misti ditta+persona (es. *"ALIM. GERARD IVANA …"*). È un
+**backstop probabilistico**, non zero — per questo la base legale resta il provider UE.
 
-**B) Endpoint LLM in UE (la base legale).**
-Stesso modello DeepSeek servito da **Azure AI Foundry** / **AWS Bedrock** in region europea:
-si cambia solo `base_url`+chiave (API OpenAI-compatible), il testo resta in UE (~+5-30 €/mese).
-Oppure **LLM locale** (Qwen / DeepSeek-small self-hosted): nessun dato lascia l'azienda
-(costo = GPU). In più restano i **documenti** (DPA, ROPA, eventuale DPIA): l'hosting dà la
-base legale, la carta la completa.
-
-> In sintesi: STRICT riduce l'esposizione al **minimo input utente**; la **guardia PII** lo
-> anonimizza (best-effort, non zero); l'**endpoint UE/locale** chiude il trasferimento.
-> Il modello è agganciato via env `PII_MODEL`: quando uscirà una versione con più dati
-> (incluso il maiuscolo) — o l'API/MCP ufficiali di rizzo — si aggiorna senza toccare il resto.
+> In sintesi: **compliance = provider UE (Mistral + DPA)**. STRICT tiene i dati fuori dal
+> prompt; la guardia PII è cintura extra opzionale. Cambi modello dal `.env`, il resto non si tocca.
 
 ## 🚀 Avvio
 
@@ -206,14 +222,16 @@ L'AI naviga e legge; l'umano scrive. Multitenant: `CODDITT` nel `.env`.
 ```
 backend/
   db.py          # pyodbc + query parametriche sulle viste AI
-  tools.py       # tool Agno (STRICT): dati → stato, conteggi → LLM
-  agent.py       # Agent DeepSeek + interfaccia AGUI + pre-hook PII
-  pii_guard.py   # client anonimizza/ripristina (guardia PII)
-  .env.example   # DB_CONN, DEEPSEEK_API_KEY, CODDITT, PII_GUARD, PII_URL
+  tools.py         # tool Agno (STRICT): dati → stato, conteggi → LLM
+  agent.py         # Agent + interfaccia AGUI + pre/post-hook PII + backoff
+  model_factory.py # provider LLM da AI_PROVIDER (mistral / deepseek / local)
+  pii_guard.py     # client anonimizza/ripristina (guardia PII)
+  eval_routing.py  # eval del tool-routing (per provider)
+  .env.example     # DB_CONN, AI_PROVIDER, MISTRAL/DEEPSEEK key, CODDITT, PII_GUARD
 frontend/
-  app/page.tsx                 # provider + masthead + CopilotSidebar
+  app/page.tsx                 # provider + masthead + CopilotSidebar + PiiUnmask
   app/api/copilotkit/route.ts  # runtime CopilotKit → AgnoAgent(/agui)
-  components/                  # Canvas, Tabella/Scheda Articoli, Grafico, Ordini, Clienti
+  components/                  # Canvas, Tabella/Scheda Articoli, Grafico, Ordini, Clienti, PiiUnmask
   lib/state.ts                 # tipi dello stato condiviso
 pii-service/                   # guardia PII locale (modello rizzo-pii-0.3B)
   service.py                   # FastAPI /anonymize: modello + regex/checksum + gazetteer ORG
