@@ -460,6 +460,7 @@ def scheda_cliente(testo: str) -> dict | None:
     cli["ultimi_ordini"] = _query(
         """
         SELECT TOP 6 data_ordine AS data, descrizione_articolo AS articolo,
+               codice_articolo AS codice,
                quantita, (quantita - quantita_evasa) AS residuo,
                CASE WHEN quantita_evasa >= quantita THEN 'evaso' ELSE 'da evadere' END AS stato
         FROM vw_EGM_AI_ordini_clienti WHERE codice_conto = ?
@@ -470,9 +471,9 @@ def scheda_cliente(testo: str) -> dict | None:
 
     cli["top_articoli"] = _query(
         """
-        SELECT TOP 8 DescrizioneArticolo AS articolo, SUM(ValoreTotale) AS valore
+        SELECT TOP 8 CodiceArticolo AS codice, DescrizioneArticolo AS articolo, SUM(ValoreTotale) AS valore
         FROM vw_EGM_AI_vendite WHERE CodiceCliente = ?
-        GROUP BY DescrizioneArticolo ORDER BY valore DESC
+        GROUP BY CodiceArticolo, DescrizioneArticolo ORDER BY valore DESC
         """,
         [cod],
     )

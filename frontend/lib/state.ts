@@ -119,8 +119,8 @@ export type ClienteDettaglio = {
   note?: string;
   kpi: { esposizione: number; scaduto: number; insoluti: number; n_scadenze: number };
   scadenze: ScadenzaMini[];
-  ultimi_ordini: { data: string; articolo: string; quantita: number; residuo: number; stato: string }[];
-  top_articoli: { articolo: string; valore: number }[];
+  ultimi_ordini: { data: string; articolo: string; codice?: string; quantita: number; residuo: number; stato: string }[];
+  top_articoli: { articolo: string; codice?: string; valore: number }[];
 };
 
 export type AgentState = {
@@ -141,6 +141,10 @@ export type AgentState = {
   clienti_filtro: string;
   cliente: ClienteDettaglio | null;
   pii_map?: Record<string, string>;
+  // navigazione drill-down: stato PRECEDENTE (un solo livello) per il tasto "Indietro".
+  // Impostato dai click di navigazione; si azzera da solo quando la chat invia un
+  // nuovo STATE_SNAPSHOT (così "indietro" non salta in un contesto vecchio).
+  prev?: Omit<AgentState, "prev"> | null;
 };
 
 export const INITIAL_STATE: AgentState = {

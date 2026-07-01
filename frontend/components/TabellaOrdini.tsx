@@ -1,12 +1,14 @@
 "use client";
 
 import { AgentState } from "@/lib/state";
+import { useNav } from "@/lib/nav";
 import { num2, dataIt } from "@/lib/format";
 
 export function TabellaOrdini({ state }: { state: AgentState }) {
   const rows = state.rows_ordini ?? [];
   const tipo = state.ordini_tipo ?? "clienti";
   const intestColonna = tipo === "fornitori" ? "Fornitore" : "Cliente";
+  const { apriArticolo, apriCliente } = useNav(state);
   const daEvadere = rows.filter((r) => r.stato === "da evadere").length;
 
   return (
@@ -41,9 +43,14 @@ export function TabellaOrdini({ state }: { state: AgentState }) {
                 <tr key={i}>
                   <td className="mono" data-label="Ordine">{r.anno}/{r.numero}</td>
                   <td className="mono" data-label="Data">{dataIt(r.data)}</td>
-                  <td className="muted small" data-label={intestColonna}>{r.conto}{r.citta ? ` · ${r.citta}` : ""}</td>
+                  <td className="muted small" data-label={intestColonna}>
+                    {tipo === "clienti" ? (
+                      <span className="linkcell" onClick={() => apriCliente(r.conto)} title="Apri scheda cliente">{r.conto}</span>
+                    ) : r.conto}
+                    {r.citta ? ` · ${r.citta}` : ""}
+                  </td>
                   <td data-label="Articolo">
-                    <span className="mono">{r.codice}</span>
+                    <span className="mono linkcell" onClick={() => apriArticolo(r.codice)} title="Apri scheda articolo">{r.codice}</span>
                     <div className="muted small">{r.descrizione}</div>
                   </td>
                   <td className="r" data-label="Q.tà">{num2(r.quantita)} {r.um}</td>

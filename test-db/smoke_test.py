@@ -56,6 +56,11 @@ def main() -> int:
     cli = db.scheda_cliente("MACELLERIA")
     ok &= _check("scheda_cliente('MACELLERIA')", bool(cli and cli.get("codice")), cli.get("ragione_sociale", "") if cli else "")
     ok &= _check("  ha kpi scadenze", bool(cli and cli.get("kpi")))
+    # drill-down: gli articoli in scheda cliente devono avere il CODICE (per aprirne la scheda)
+    top = (cli or {}).get("top_articoli") or []
+    ok &= _check("  top_articoli col codice", bool(top and top[0].get("codice")), top[0].get("codice", "") if top else "")
+    ordc = (cli or {}).get("ultimi_ordini") or []
+    ok &= _check("  ultimi_ordini col codice", bool(ordc and ordc[0].get("codice")), ordc[0].get("codice", "") if ordc else "")
 
     anni = db.anni_disponibili()
     ok &= _check("anni_disponibili()", len(anni) >= 3, str(anni))

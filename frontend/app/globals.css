@@ -259,6 +259,14 @@ html, body {
   font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em;
 }
 
+/* cella navigabile: apre la scheda articolo/cliente (drill-down) */
+.linkcell {
+  cursor: pointer; color: var(--signal);
+  text-decoration: underline; text-decoration-color: rgba(214,72,27,0.35);
+  text-underline-offset: 2px;
+}
+.linkcell:hover { text-decoration-color: var(--signal); }
+
 /* =========================================================================
    SCHEDA ARTICOLO — stat come timbri
    ========================================================================= */

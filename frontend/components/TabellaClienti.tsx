@@ -1,23 +1,12 @@
 "use client";
 
-import { useCoAgent } from "@copilotkit/react-core";
-import { AgentState, INITIAL_STATE } from "@/lib/state";
+import { AgentState } from "@/lib/state";
+import { useNav } from "@/lib/nav";
 
 export function TabellaClienti({ state }: { state: AgentState }) {
   const rows = state.rows_clienti ?? [];
   const filtro = state.clienti_filtro;
-  const { setState } = useCoAgent<AgentState>({ name: "my_agent", initialState: INITIAL_STATE });
-
-  // click su riga -> apre la scheda del cliente (fetch diretto, NON passa dall'LLM)
-  const apriCliente = async (cod: string) => {
-    try {
-      const r = await fetch(`/api/cliente?cod=${encodeURIComponent(cod)}`);
-      const cli = await r.json();
-      if (cli?.codice) setState({ ...state, view: "cliente", cliente: cli });
-    } catch {
-      /* noop */
-    }
-  };
+  const { apriCliente } = useNav(state);
 
   return (
     <div className="panel">

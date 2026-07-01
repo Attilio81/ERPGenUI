@@ -1,12 +1,12 @@
 "use client";
 
-import { useCoAgent } from "@copilotkit/react-core";
-import { AgentState, INITIAL_STATE } from "@/lib/state";
+import { AgentState } from "@/lib/state";
+import { useNav } from "@/lib/nav";
 import { num, num2, euro, dataIt } from "@/lib/format";
 import { EditArticolo } from "./EditArticolo";
 
 export function SchedaArticolo({ state }: { state: AgentState }) {
-  const { setState } = useCoAgent<AgentState>({ name: "my_agent", initialState: INITIAL_STATE });
+  const { apriCliente, indietro, hasPrev } = useNav(state);
   const a = state.articolo;
   if (!a) {
     return <div className="panel"><div className="empty">Nessuna scheda caricata.</div></div>;
@@ -25,9 +25,9 @@ export function SchedaArticolo({ state }: { state: AgentState }) {
           </p>
         </div>
         <div className="scheda-actions">
-          {state.rows?.length ? (
-            <button type="button" className="edit-btn ghost" onClick={() => setState({ ...state, view: "table" })}>
-              ← Lista
+          {hasPrev ? (
+            <button type="button" className="edit-btn ghost" onClick={indietro}>
+              ← Indietro
             </button>
           ) : null}
           <span className="chip">UM {a.um}</span>
@@ -72,7 +72,9 @@ export function SchedaArticolo({ state }: { state: AgentState }) {
                 {a.ultime_vendite.map((v, i) => (
                   <tr key={i}>
                     <td>{dataIt(v.data)}</td>
-                    <td className="muted small">{v.cliente}</td>
+                    <td className="muted small">
+                      <span className="linkcell" onClick={() => apriCliente(v.cliente)} title="Apri scheda cliente">{v.cliente}</span>
+                    </td>
                     <td className="r">{num2(v.quantita)}</td>
                     <td className="r strong">{euro(v.valore)}</td>
                   </tr>
@@ -84,7 +86,7 @@ export function SchedaArticolo({ state }: { state: AgentState }) {
 
         <div className="card">
           <h3>Ultimi ordini clienti</h3>
-          <OrdiniMini righe={a.ordini_clienti} contoLabel="Cliente" vuoto="Nessun ordine cliente." />
+          <OrdiniMini righe={a.ordini_clienti} contoLabel="Cliente" vuoto="Nessun ordine cliente." onConto={apriCliente} />
         </div>
 
         <div className="card">
@@ -100,10 +102,12 @@ function OrdiniMini({
   righe,
   contoLabel,
   vuoto,
+  onConto,
 }: {
   righe?: { data: string; conto: string; quantita: number; residuo: number; stato: string }[];
   contoLabel: string;
   vuoto: string;
+  onConto?: (conto: string) => void;
 }) {
   if (!righe?.length) return <p className="muted">{vuoto}</p>;
   return (
@@ -115,7 +119,11 @@ function OrdiniMini({
         {righe.map((o, i) => (
           <tr key={i}>
             <td className="mono">{dataIt(o.data)}</td>
-            <td className="muted small">{o.conto}</td>
+            <td className="muted small">
+              {onConto ? (
+                <span className="linkcell" onClick={() => onConto(o.conto)} title="Apri scheda cliente">{o.conto}</span>
+              ) : o.conto}
+            </td>
             <td className="r">{num2(o.quantita)}</td>
             <td>
               <span className={"stato-pill " + (o.stato === "da evadere" ? "open" : "done")}>{o.stato}</span>
