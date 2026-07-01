@@ -39,6 +39,29 @@ Coerenza, design system e controllo restano dalla parte dell'applicazione.
 > Ispirato al filone "Generative UI" (AI SDK / CopilotKit / AG-UI / MCP), ma con backend
 > **Python/Agno** invece che TypeScript: il contratto AG-UI è identico, il linguaggio no.
 
+## ⚙️ Come funziona (in 4 passi)
+
+L'LLM **non sceglie un componente direttamente**: sceglie una **funzione**, ed è la funzione a
+decidere la vista. La catena:
+
+1. **Frase** → l'utente scrive in chat (*"articoli più venduti nel 2025"*).
+2. **Funzione** → l'LLM abbina la frase alla **funzione** (tool) che calza, per **nome +
+   descrizione + istruzioni di regia**, ed estrae i parametri (*"nel 2025"* → `anno=2025`).
+   Le funzioni sono un **elenco chiuso** (`cerca_articoli`, `scheda_cliente`, `grafico_vendite`…):
+   l'AI può solo sceglierne una, non inventarne — per questo è affidabile.
+3. **Vista** → la funzione gira **sul backend**, interroga il DB e scrive nello **stato condiviso**
+   il campo `view` (`table` / `detail` / `chart` / `ordini` / `clienti` / `cliente`) + i dati.
+4. **Componente** → CopilotKit sincronizza lo stato allo schermo (AG-UI/SSE) e il **Canvas** mostra
+   il **componente deterministico** corrispondente a `view`.
+
+```
+frase → [LLM sceglie la FUNZIONE] → la funzione imposta la VISTA → il Canvas mostra il COMPONENTE
+              (per nome+descrizione)        (nello stato condiviso)         (elenco chiuso, nostro)
+```
+
+> Privacy: i **dati** vanno solo nello stato → a schermo; all'LLM torna **solo un conteggio/conferma**
+> (*"trovati 183 articoli"*), mai le righe. L'LLM decide *cosa* mostrare, non *vede* i dati.
+
 ## ⭐ Caratteristiche
 
 - 💬 **Chat → UI**: *"mostra i rotoli disponibili, ordina per giacenza"* filtra e ordina una tabella reale.
