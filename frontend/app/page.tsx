@@ -11,9 +11,13 @@ import { ChatHeader, NuovaContext } from "@/components/ChatHeader";
 export default function Page() {
   const [oggi, setOggi] = useState("");
   // threadId controllato: cambiarlo = nuova sessione backend (contesto azzerato).
+  // Ogni caricamento pagina (incluso F5) parte da un thread nuovo -> chat pulita,
+  // niente vecchia conversazione ripescata da session.db. Fissato in useEffect
+  // (non nell'inizializzatore) per evitare mismatch di hydration SSR/client.
   const [threadId, setThreadId] = useState("default");
   useEffect(() => {
     setOggi(new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }));
+    setThreadId("t-" + Date.now());
   }, []);
 
   const nuovaConversazione = () => setThreadId("t-" + Date.now());

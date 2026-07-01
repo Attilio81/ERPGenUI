@@ -6,6 +6,7 @@ si filtra/aggrega sempre, mai SELECT *.
 from __future__ import annotations
 
 import os
+import threading
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Any
@@ -17,14 +18,19 @@ load_dotenv()
 
 _CONN_STR = os.environ["DB_CONN"]
 _CODDITT = os.environ.get("CODDITT", "VITC")  # multitenant: una ditta per deploy
-_conn: pyodbc.Connection | None = None
+
+# Una connessione per thread: FastAPI (endpoint sync) e i tool dell'agente girano
+# sul threadpool anyio. pyodbc.Connection NON è thread-safe: condividerne una sola
+# globale tra thread concorrenti corrompe la connessione -> ECONNRESET. thread-local
+# dà a ogni thread la propria connessione, nessuna collisione.
+_local = threading.local()
 
 
 def _get_conn() -> pyodbc.Connection:
-    global _conn
-    if _conn is None:
-        _conn = pyodbc.connect(_CONN_STR, timeout=15)
-    return _conn
+    conn = getattr(_local, "conn", None)
+    if conn is None:
+        conn = _local.conn = pyodbc.connect(_CONN_STR, timeout=15)
+    return conn
 
 
 def _jsonify(v: Any) -> Any:
@@ -48,14 +54,14 @@ def _query(sql: str, params: list | None = None) -> list[dict]:
         cur.execute(sql, params or [])
         return _rows(cur)
     except pyodbc.Error:
-        # connessione caduta: reset e retry una volta
-        global _conn
+        # connessione caduta: reset (solo di questo thread) e retry una volta
+        conn = getattr(_local, "conn", None)
         try:
-            if _conn:
-                _conn.close()
+            if conn:
+                conn.close()
         except Exception:
             pass
-        _conn = None
+        _local.conn = None
         cur = _get_conn().cursor()
         cur.execute(sql, params or [])
         return _rows(cur)

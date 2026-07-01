@@ -404,6 +404,17 @@ html, body {
 }
 .help-q:hover { background: #fff; border-color: var(--signal); }
 
+/* Benvenuto (primo apri) */
+.welcome-body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 20px; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.step { display: flex; align-items: center; gap: 12px; }
+.step-n {
+  flex: none; width: 26px; height: 26px; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #fff;
+  background: var(--signal); border-radius: 0;
+}
+.step-t { font-family: var(--font-sans); font-size: 14px; color: var(--ink); }
+
 .chart-wrap { padding: 18px 14px 10px; }
 .recharts-cartesian-axis-tick text { font-family: var(--font-mono); fill: var(--ink-2); }
 

@@ -2,6 +2,7 @@
 
 import { useCoAgent, useCopilotAction } from "@copilotkit/react-core";
 import { AgentState, INITIAL_STATE } from "@/lib/state";
+import { Benvenuto } from "./Benvenuto";
 import { TabellaArticoli } from "./TabellaArticoli";
 import { SchedaArticolo } from "./SchedaArticolo";
 import { GraficoVendite } from "./GraficoVendite";
@@ -40,9 +41,16 @@ export function Canvas() {
   const s = state ?? INITIAL_STATE;
   const view = s.view ?? "table";
 
+  // primo apri: vista tabella, nessun risultato, nessun filtro attivo -> benvenuto.
+  // Una ricerca a 0 risultati (o con filtri) mostra invece la tabella con "Nessun dato".
+  const f = s.filtri ?? {};
+  const nessunFiltro = !f.famiglia && !f.fornitore && !f.testo && !f.solo_disponibili;
+  const primoApri = view === "table" && (s.count ?? 0) === 0 && !(s.rows?.length) && nessunFiltro;
+
   return (
     <section className="canvas">
-      {view === "table" && <TabellaArticoli state={s} />}
+      {primoApri && <Benvenuto />}
+      {!primoApri && view === "table" && <TabellaArticoli state={s} />}
       {view === "detail" && <SchedaArticolo state={s} />}
       {view === "chart" && <GraficoVendite state={s} />}
       {view === "ordini" && <TabellaOrdini state={s} />}
