@@ -1,0 +1,34 @@
+# DB di TEST usa-e-getta per ERP Generative UI.
+#   docker compose up        -> avvia SQL Server 2022 + esegue seed.sql
+#   docker compose down -v   -> butta tutto (dati inclusi)
+# La password sa è di TEST, non usarla in produzione.
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: erp-testdb
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Test_Str0ng!Pass"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # one-shot: attende il DB pronto, esegue il seed, poi esce.
+  seed:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./seed.sql:/seed.sql:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - '/opt/mssql-tools18/bin/sqlcmd -C -S db -U sa -P "Test_Str0ng!Pass" -i /seed.sql'
+    restart: "no"
