@@ -187,6 +187,17 @@ class ClienteUpdate(BaseModel):
     note: str | None = None
 
 
+@app.get("/api/info")
+def info():
+    # info non sensibili per il frontend: quale LLM sta pilotando + guardia PII.
+    import os
+    return {
+        "provider": os.environ.get("AI_PROVIDER", "deepseek"),
+        "model": getattr(agent.model, "id", "?"),
+        "guard": pii_guard.PII_ENABLED,
+    }
+
+
 @app.get("/api/cliente")
 def get_cliente(cod: str):
     # apertura scheda da click UI (no LLM): ritorna i dati al frontend (a schermo)

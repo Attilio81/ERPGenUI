@@ -5,13 +5,8 @@ import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 import { Canvas } from "@/components/Canvas";
-import { ResetButton } from "@/components/ResetButton";
-import { MicButton } from "@/components/MicButton";
-import { HelpModal } from "@/components/HelpModal";
 import { PiiUnmask } from "@/components/PiiUnmask";
-
-// Etichetta del modello nel masthead (non hardcodata al provider). Override: NEXT_PUBLIC_LLM_LABEL.
-const LLM_LABEL = process.env.NEXT_PUBLIC_LLM_LABEL || "LLM";
+import { ChatHeader, NuovaContext } from "@/components/ChatHeader";
 
 export default function Page() {
   const [oggi, setOggi] = useState("");
@@ -24,7 +19,7 @@ export default function Page() {
   const nuovaConversazione = () => setThreadId("t-" + Date.now());
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent" threadId={threadId}>
+    <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent" threadId={threadId} showDevConsole={false}>
       <PiiUnmask />
       <div className="layout">
         <main className="stage">
@@ -41,13 +36,8 @@ export default function Page() {
                 <div>DITTA <b>DEMO</b> · MAG <b>01</b></div>
                 <div>DATA <b>{oggi || "—"}</b></div>
                 <div className="regia">
-                  <span className="dot" /> {LLM_LABEL} · regìa
+                  <span className="dot" /> assistente AI · regìa
                 </div>
-                <span className="masthead-actions">
-                  <HelpModal />
-                  <MicButton />
-                  <ResetButton onNuova={nuovaConversazione} />
-                </span>
               </div>
             </div>
             <div className="eyebrow-row">
@@ -63,15 +53,18 @@ export default function Page() {
         </main>
       </div>
 
-      <CopilotSidebar
-        defaultOpen
-        clickOutsideToClose={false}
-        labels={{
-          title: "Banco · Assistente",
-          initial:
-            "Comando la distinta per te. Prova:\n\n• «articoli disponibili della famiglia rotoli, ordina per giacenza»\n• «scheda dell'articolo ROTO-028»\n• «articoli più venduti per valore nel 2025»",
-        }}
-      />
+      <NuovaContext.Provider value={nuovaConversazione}>
+        <CopilotSidebar
+          defaultOpen
+          clickOutsideToClose={false}
+          Header={ChatHeader}
+          labels={{
+            title: "Banco · Assistente AI",
+            initial:
+              "Sono l'assistente AI del banco: comando la distinta per te. Prova:\n\n• «articoli disponibili della famiglia rotoli, ordina per giacenza»\n• «scheda dell'articolo ROTO-028»\n• «articoli più venduti per valore nel 2025»",
+          }}
+        />
+      </NuovaContext.Provider>
     </CopilotKit>
   );
 }

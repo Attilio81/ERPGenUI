@@ -117,6 +117,37 @@ html, body {
 
 .masthead-actions { display: inline-flex; gap: 8px; margin-top: 8px; }
 .masthead-actions .reset-btn { margin-top: 0; }
+
+/* Header custom della chat (Assistente AI): strip brand scura, coerente col masthead */
+.chat-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 9px 12px; background: var(--ink); color: var(--paper);
+  border-bottom: 3px solid var(--signal);
+}
+.ch-title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.ch-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #1F6B3B; flex: none;
+  box-shadow: 0 0 0 3px rgba(31,107,59,0.25);
+}
+.ch-texts { min-width: 0; }
+.ch-name {
+  font-family: var(--font-display, inherit); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.01em; white-space: nowrap;
+}
+.ch-model {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em;
+  color: rgba(231,225,211,0.6); text-transform: uppercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ch-actions { display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.ch-actions .reset-btn, .ch-actions .mic-btn { margin-top: 0; }
+.ch-close {
+  cursor: pointer; width: 26px; height: 26px; border-radius: 2px; font-size: 12px;
+  color: var(--paper); background: transparent; border: 1px solid rgba(202,191,166,0.45);
+  transition: border-color .15s, color .15s;
+}
+.ch-close:hover { border-color: var(--signal); color: var(--signal); }
+.ch-close:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .mic-btn {
   cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px;
