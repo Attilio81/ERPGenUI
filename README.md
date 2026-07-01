@@ -198,6 +198,12 @@ MAIUSCOLO, via normalizzazione del case) **affidabili**; nomi-ditta coperti dal 
 Prerequisiti: **Node 18+**, **Python 3.11+** (dev: [uv](https://docs.astral.sh/uv/) comodo,
 non obbligatorio), **ODBC Driver 17 for SQL Server**, una chiave **DeepSeek**.
 
+> **Non hai il gestionale del cliente?** Usa il **DB di test usa-e-getta** (SQL Server in
+> Docker + dati sintetici) in [`test-db/`](test-db/): `cd test-db && docker compose up`, poi
+> `copy backend\.env.test backend\.env`. Include i codici delle demo (ROTO-028, BIPP-049, …).
+> L'LLM resta a carico tuo (chiave cloud o `AI_PROVIDER=local` con Ollama). Vedi
+> [`test-db/README.md`](test-db/README.md).
+
 ### 1. Backend (porta 7000)
 ```bash
 cd backend
@@ -259,6 +265,10 @@ frontend/
 pii-service/                   # guardia PII locale (modello rizzo-pii-0.3B)
   service.py                   # FastAPI /anonymize: modello + regex/checksum + gazetteer ORG
   eval_100.py, eval_esteso.py  # eval con scorecard per categoria
+test-db/                       # DB di test usa-e-getta (senza il gestionale del cliente)
+  docker-compose.yml           # SQL Server 2022 + seed one-shot
+  seed.sql                     # viste AI (come tabelle) + artico/anagra, dati sintetici
+  smoke_test.py                # esercita backend/db.py contro il container
 ```
 
 ## 🎨 Design
