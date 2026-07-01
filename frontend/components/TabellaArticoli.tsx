@@ -66,14 +66,14 @@ export function TabellaArticoli({ state }: { state: AgentState }) {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.codice} className="clickable" onClick={() => apriArticolo(r.codice)} title="Apri scheda articolo">
-                  <td className="mono">{r.codice}</td>
-                  <td>{r.descrizione}</td>
-                  <td className="muted small">{r.famiglia}</td>
-                  <td className="muted small">{r.fornitore}</td>
-                  <td className="r">{num(r.esistenza)}</td>
-                  <td className="r">{num(r.impegnato)}</td>
-                  <td className="r">{num(r.ordinato)}</td>
-                  <td className={"r strong " + (r.disponibile > 0 ? "ok" : "ko")}>{num(r.disponibile)}</td>
+                  <td className="mono" data-label="Codice">{r.codice}</td>
+                  <td data-label="Descrizione">{r.descrizione}</td>
+                  <td className="muted small" data-label="Famiglia">{r.famiglia}</td>
+                  <td className="muted small" data-label="Fornitore">{r.fornitore}</td>
+                  <td className="r" data-label="Esist.">{num(r.esistenza)}</td>
+                  <td className="r" data-label="Impeg.">{num(r.impegnato)}</td>
+                  <td className="r" data-label="Ordin.">{num(r.ordinato)}</td>
+                  <td className={"r strong " + (r.disponibile > 0 ? "ok" : "ko")} data-label="Dispon.">{num(r.disponibile)}</td>
                 </tr>
               ))}
             </tbody>

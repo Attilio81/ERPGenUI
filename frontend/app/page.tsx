@@ -15,9 +15,19 @@ export default function Page() {
   // niente vecchia conversazione ripescata da session.db. Fissato in useEffect
   // (non nell'inizializzatore) per evitare mismatch di hydration SSR/client.
   const [threadId, setThreadId] = useState("default");
+  // Su mobile la chat parte CHIUSA (canvas a tutto schermo); il pulsante toggle
+  // di CopilotSidebar la apre a schermo intero (vedi globals.css). Su desktop
+  // resta il pannello persistente affiancato.
+  // `defaultOpen` viene letto SOLO al mount della sidebar: quindi montiamo la
+  // sidebar dopo aver rilevato il viewport (gate `mounted`), altrimenti su mobile
+  // partirebbe aperta col valore SSR e coprirebbe il canvas.
+  const [mounted, setMounted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   useEffect(() => {
     setOggi(new Date().toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }));
     setThreadId("t-" + Date.now());
+    setSidebarOpen(!window.matchMedia("(max-width: 900px)").matches);
+    setMounted(true);
   }, []);
 
   const nuovaConversazione = () => setThreadId("t-" + Date.now());
@@ -57,18 +67,20 @@ export default function Page() {
         </main>
       </div>
 
-      <NuovaContext.Provider value={nuovaConversazione}>
-        <CopilotSidebar
-          defaultOpen
-          clickOutsideToClose={false}
-          Header={ChatHeader}
-          labels={{
-            title: "Banco · Assistente AI",
-            initial:
-              "Sono l'assistente AI del banco: comando la distinta per te. Prova:\n\n• «articoli disponibili della famiglia rotoli, ordina per giacenza»\n• «scheda dell'articolo ROTO-028»\n• «articoli più venduti per valore nel 2025»",
-          }}
-        />
-      </NuovaContext.Provider>
+      {mounted && (
+        <NuovaContext.Provider value={nuovaConversazione}>
+          <CopilotSidebar
+            defaultOpen={sidebarOpen}
+            clickOutsideToClose={false}
+            Header={ChatHeader}
+            labels={{
+              title: "Banco · Assistente AI",
+              initial:
+                "Sono l'assistente AI del banco: comando la distinta per te. Prova:\n\n• «articoli disponibili della famiglia rotoli, ordina per giacenza»\n• «scheda dell'articolo ROTO-028»\n• «articoli più venduti per valore nel 2025»",
+            }}
+          />
+        </NuovaContext.Provider>
+      )}
     </CopilotKit>
   );
 }

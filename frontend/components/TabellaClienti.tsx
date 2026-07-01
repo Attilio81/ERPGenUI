@@ -46,13 +46,13 @@ export function TabellaClienti({ state }: { state: AgentState }) {
             <tbody>
               {rows.map((c, i) => (
                 <tr key={`${c.codice}-${i}`} className="clickable" onClick={() => apriCliente(c.codice)} title="Apri scheda cliente">
-                  <td className="mono">{c.codice}</td>
-                  <td>{c.ragione_sociale}</td>
-                  <td className="muted small">{c.citta}</td>
-                  <td className="muted small">{c.provincia}</td>
-                  <td className="mono small">{c.piva}</td>
-                  <td className="muted small">{c.zona}</td>
-                  <td>
+                  <td className="mono" data-label="Codice">{c.codice}</td>
+                  <td data-label="Ragione sociale">{c.ragione_sociale}</td>
+                  <td className="muted small" data-label="Città">{c.citta}</td>
+                  <td className="muted small" data-label="Pr.">{c.provincia}</td>
+                  <td className="mono small" data-label="P.IVA">{c.piva}</td>
+                  <td className="muted small" data-label="Zona">{c.zona}</td>
+                  <td data-label="Stato">
                     <span className={"stato-pill " + (c.bloccato === "S" ? "open" : "done")}>
                       {c.bloccato === "S" ? "bloccato" : "attivo"}
                     </span>

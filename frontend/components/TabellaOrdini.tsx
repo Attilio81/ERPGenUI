@@ -39,17 +39,17 @@ export function TabellaOrdini({ state }: { state: AgentState }) {
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i}>
-                  <td className="mono">{r.anno}/{r.numero}</td>
-                  <td className="mono">{dataIt(r.data)}</td>
-                  <td className="muted small">{r.conto}{r.citta ? ` · ${r.citta}` : ""}</td>
-                  <td>
+                  <td className="mono" data-label="Ordine">{r.anno}/{r.numero}</td>
+                  <td className="mono" data-label="Data">{dataIt(r.data)}</td>
+                  <td className="muted small" data-label={intestColonna}>{r.conto}{r.citta ? ` · ${r.citta}` : ""}</td>
+                  <td data-label="Articolo">
                     <span className="mono">{r.codice}</span>
                     <div className="muted small">{r.descrizione}</div>
                   </td>
-                  <td className="r">{num2(r.quantita)} {r.um}</td>
-                  <td className="r">{num2(r.evasa)}</td>
-                  <td className={"r strong " + (r.residuo > 0 ? "ko" : "ok")}>{num2(r.residuo)}</td>
-                  <td>
+                  <td className="r" data-label="Q.tà">{num2(r.quantita)} {r.um}</td>
+                  <td className="r" data-label="Evasa">{num2(r.evasa)}</td>
+                  <td className={"r strong " + (r.residuo > 0 ? "ko" : "ok")} data-label="Residuo">{num2(r.residuo)}</td>
+                  <td data-label="Stato">
                     <span className={"stato-pill " + (r.stato === "da evadere" ? "open" : "done")}>
                       {r.stato}
                     </span>

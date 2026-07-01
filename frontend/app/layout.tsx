@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Saira_Condensed, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -24,6 +24,12 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "ACME · Magazzino — Distinta interattiva",
   description: "Generative UI a stato condiviso: la chat pilota la distinta di magazzino su dati reali.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
