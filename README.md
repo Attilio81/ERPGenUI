@@ -80,19 +80,7 @@ frase → [LLM sceglie la FUNZIONE] → la funzione imposta la VISTA → il Canv
 
 ## 🏗️ Architettura
 
-```
-┌─────────────────────────────┐    AG-UI / SSE     ┌──────────────────────────────┐
-│  Next.js + CopilotKit        │ ◄─ stato condiviso ►│  Agno Agent (FastAPI /agui)   │
-│  useCoAgent("my_agent")      │  {view, filtri,     │  LLM: Mistral·DeepSeek·local  │
-│  render su state.view:       │   sort, rows,       │  tools read-only              │
-│  table·detail·chart·         │   articolo, chart…} │     │                         │
-│  ordini·clienti·cliente      │                     │     ▼  pyodbc (SELECT)        │
-└─────────────────────────────┘                     │  viste AI del gestionale      │
-      │  click su articolo/cliente (drill-down)      └──────────────────────────────┘
-      └──► GET /api/articolo · /api/cliente (fetch diretto, no LLM) ──► scheda a schermo
-                          guardia PII (opzionale, PII_GUARD=on)
-   testo utente ──► pii-service :5005 /anonymize ──► placeholder al modello, valore vero in locale
-```
+![Architettura: Next.js + CopilotKit ⇄ (AG-UI/SSE, stato condiviso) ⇄ Agno Agent FastAPI, pyodbc su viste SQL Server; click articolo/cliente via GET /api diretto senza LLM](docs/diagrams/architettura.png)
 
 | Livello    | Tecnologia |
 |------------|------------|
@@ -142,20 +130,7 @@ scambi** di storia per i follow-up e sui rate-limit (429) **ritenta** con backof
 
 "Privacy" è spesso venduta più di quanto sia vera. Qui sotto **cosa esce davvero** e cosa no.
 
-```
-Utente: "scheda cliente Mario Rossi"
-   │
-   ▼  [con PII_GUARD=on] anonimizza in locale → "scheda cliente [FULLNAME_1]"
-   ▼
-LLM vede:  ① il testo digitato   ← guardia OFF: nome in chiaro ⚠ · guardia ON: [FULLNAME_1] 🛡️
-           ② lo schema dei tool (nomi colonne)   ← NON è dato personale ✅
-           ③ fatti di prodotto (prezzo/giacenza) ← NON personali ✅
-   │  tool: scheda_cliente(testo="[FULLNAME_1]") → ripristina → "Mario Rossi" (locale)
-   ▼
-Backend: esegue la SELECT
-   ├──► righe (anagrafica, scadenze, importi) ──► STATE_SNAPSHOT ──► schermo   [restano QUI]
-   └──► all'LLM torna SOLO: "Trovato 1 cliente, 4 scadenze aperte"   ← nessuna riga
-```
+![Privacy STRICT: il testo utente viene anonimizzato in locale (PII_GUARD); l'LLM vede solo testo mascherato, schema dei tool e fatti di prodotto (non personali); le righe di dati vanno solo a schermo via STATE_SNAPSHOT, all'LLM torna solo un conteggio](docs/diagrams/privacy.png)
 
 ### Cosa NON è un problema (e spesso viene scambiato per tale)
 - **Gli schemi del DB non sono dati personali.** "La tabella `ARTICO` ha colonne `ar_codart`,
