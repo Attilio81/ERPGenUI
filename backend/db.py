@@ -29,7 +29,11 @@ _local = threading.local()
 def _get_conn() -> pyodbc.Connection:
     conn = getattr(_local, "conn", None)
     if conn is None:
-        conn = _local.conn = pyodbc.connect(_CONN_STR, timeout=15)
+        conn = _local.conn = pyodbc.connect(_CONN_STR, timeout=15)  # timeout=login
+        # Query timeout (secondi): senza, una query bloccata da un lock del gestionale
+        # tiene il thread del pool per sempre -> i thread si accumulano -> tutte le
+        # /api/* si accodano per minuti. Meglio un errore in 15s che l'app appesa.
+        conn.timeout = 15
     return conn
 
 
@@ -48,12 +52,20 @@ def _rows(cursor) -> list[dict]:
     return [{c: _jsonify(v) for c, v in zip(cols, row)} for row in cursor.fetchall()]
 
 
+def _is_timeout(e: pyodbc.Error) -> bool:
+    # HYT00 = query timeout: la query è LENTA, non la connessione rotta.
+    # Ritentarla raddoppierebbe solo il carico sul DB.
+    return "HYT00" in str(e.args[0] if e.args else e)
+
+
 def _query(sql: str, params: list | None = None) -> list[dict]:
     try:
         cur = _get_conn().cursor()
         cur.execute(sql, params or [])
         return _rows(cur)
-    except pyodbc.Error:
+    except pyodbc.Error as e:
+        if _is_timeout(e):
+            raise
         # connessione caduta: reset (solo di questo thread) e retry una volta
         conn = getattr(_local, "conn", None)
         try:
@@ -202,22 +214,27 @@ _EDITABILI = {
 
 
 def _execute_write(sql: str, params: list) -> int:
-    global _conn
     try:
-        cur = _get_conn().cursor()
+        conn = _get_conn()
+        cur = conn.cursor()
         cur.execute(sql, params)
-        _conn.commit()
+        conn.commit()
         return cur.rowcount
-    except pyodbc.Error:
+    except pyodbc.Error as e:
+        if _is_timeout(e):
+            raise
+        # connessione caduta: reset (solo di questo thread) e retry una volta
+        conn = getattr(_local, "conn", None)
         try:
-            if _conn:
-                _conn.close()
+            if conn:
+                conn.close()
         except Exception:
             pass
-        _conn = None
-        cur = _get_conn().cursor()
+        _local.conn = None
+        conn = _get_conn()
+        cur = conn.cursor()
         cur.execute(sql, params)
-        _conn.commit()
+        conn.commit()
         return cur.rowcount
 
 

@@ -7,6 +7,11 @@ import { AgentState, INITIAL_STATE } from "@/lib/state";
 // in `prev`; "Indietro" ci ritorna. Nessuno stack (YAGNI). La chat, cambiando vista
 // via STATE_SNAPSHOT, rimpiazza lo stato e azzera `prev` da sola.
 // Il fetch è diretto (/api/...), NON passa dall'LLM — apertura deterministica.
+
+// Anti doppio-click: se una richiesta per la stessa risorsa è già in volo, i click
+// successivi vengono ignorati (ri-cliccare non accelera, accoda solo query al DB).
+const inFlight = new Set<string>();
+
 export function useNav(state: AgentState) {
   const { setState } = useCoAgent<AgentState>({ name: "my_agent", initialState: INITIAL_STATE });
 
@@ -19,6 +24,9 @@ export function useNav(state: AgentState) {
   const apriArticolo = async (cod?: string) => {
     const c = (cod || "").trim();
     if (!c) return;
+    const key = `articolo:${c}`;
+    if (inFlight.has(key)) return; // già in volo: ignora il ri-click
+    inFlight.add(key);
     try {
       const r = await fetch(`/api/articolo?cod=${encodeURIComponent(c)}`);
       const art = await r.json();
@@ -27,6 +35,8 @@ export function useNav(state: AgentState) {
       }
     } catch {
       /* noop */
+    } finally {
+      inFlight.delete(key);
     }
   };
 
@@ -34,6 +44,9 @@ export function useNav(state: AgentState) {
   const apriCliente = async (rif?: string) => {
     const c = (rif || "").trim();
     if (!c) return;
+    const key = `cliente:${c}`;
+    if (inFlight.has(key)) return; // già in volo: ignora il ri-click
+    inFlight.add(key);
     try {
       const r = await fetch(`/api/cliente?cod=${encodeURIComponent(c)}`);
       const cli = await r.json();
@@ -42,6 +55,8 @@ export function useNav(state: AgentState) {
       }
     } catch {
       /* noop */
+    } finally {
+      inFlight.delete(key);
     }
   };
 
